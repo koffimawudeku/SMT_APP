@@ -2,8 +2,8 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,7 +26,13 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="soldeGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#0F6E56" stopOpacity={0.35} />
+            <stop offset="95%" stopColor="#0F6E56" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis
           dataKey="date"
@@ -46,14 +52,14 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
           labelStyle={{ fontSize: 12 }}
           contentStyle={{ fontSize: 12, borderRadius: 8 }}
         />
-        <Line
+        <Area
           type="monotone"
           dataKey="solde"
           stroke="#0F6E56"
           strokeWidth={2}
-          dot={false}
+          fill="url(#soldeGradient)"
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }
