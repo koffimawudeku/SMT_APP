@@ -18,7 +18,7 @@ export default async function BilanPage() {
 
   const ecart = b.totalActif - b.totalPassif;
   const equilibre = Math.abs(ecart) < 1;
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
   const today = new Date();
 
   return (

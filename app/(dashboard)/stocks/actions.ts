@@ -7,8 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 const articleSchema = z.object({
   name: z.string().min(1, "La désignation est requise"),
   reference: z.string().max(100).optional(),
-  unit_cost: z.coerce.number().min(0).optional(),
-  reorder_threshold: z.coerce.number().min(0).optional(),
+  unit_cost: z.coerce.number().int("Nombre entier requis").min(0).optional(),
+  reorder_threshold: z.coerce.number().int("Nombre entier requis").min(0).optional(),
 });
 
 export async function createArticle(companyId: string, formData: FormData) {
@@ -47,8 +47,8 @@ export async function createArticle(companyId: string, formData: FormData) {
 const movementSchema = z.object({
   stock_item_id: z.string().uuid("Choisissez un article"),
   type: z.enum(["initial", "entree", "sortie"]),
-  quantity: z.coerce.number().positive("La quantité doit être positive"),
-  unit_cost: z.coerce.number().min(0).optional(),
+  quantity: z.coerce.number().int("Nombre entier requis").positive("La quantité doit être positive"),
+  unit_cost: z.coerce.number().int("Nombre entier requis").min(0).optional(),
   movement_date: z.coerce.date(),
   description: z.string().max(500).optional(),
 });

@@ -82,7 +82,7 @@ export default async function JournalPage() {
     return { ...t, soldeCaisse, soldeBanque };
   });
 
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   return (
     <div className="p-6">

@@ -33,7 +33,7 @@ export default async function ImmobilisationsPage() {
   }));
 
   const totalVCN = rows.reduce((sum, r) => sum + r.vcn, 0);
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   return (
     <div className="mx-auto max-w-4xl p-6">

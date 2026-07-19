@@ -29,7 +29,7 @@ export default async function StocksPage() {
     (quantities ?? []).map((q) => [q.stock_item_id, q.quantity as number])
   );
 
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   const rows = (articles ?? []).map((a) => {
     const quantity = quantityMap.get(a.id) ?? 0;

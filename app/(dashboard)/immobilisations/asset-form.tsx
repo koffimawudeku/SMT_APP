@@ -45,7 +45,7 @@ export default function AssetForm({ companyId }: { companyId: string }) {
           type="number"
           required
           min={0}
-          step="0.01"
+          step="1"
           placeholder="Valeur d'acquisition"
           className="w-1/3 rounded-md border border-gray-300 px-3 py-2 text-sm"
         />
@@ -80,7 +80,7 @@ export default function AssetForm({ companyId }: { companyId: string }) {
             name="exit_price"
             type="number"
             min={0}
-            step="0.01"
+            step="1"
             placeholder="Prix de cession"
             className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-sm"
           />

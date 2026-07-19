@@ -45,7 +45,7 @@ export default function DebtRow({ item }: { item: Item }) {
         </p>
         <p className="text-xs text-gray-500">
           {item.label && <span>{item.label} — </span>}
-          {new Intl.NumberFormat("fr-FR").format(item.amount)} FCFA
+          {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(item.amount)} FCFA
           {item.due_date ? ` — échéance ${item.due_date}` : ""}
           {isLate && <span className="ml-1 text-orange-600">en retard</span>}
         </p>

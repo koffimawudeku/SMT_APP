@@ -8,7 +8,7 @@ const debtSchema = z.object({
   type: z.enum(["dette", "creance"]),
   third_party_name: z.string().min(1, "Le nom du tiers est requis"),
   label: z.string().max(255).optional(),
-  amount: z.coerce.number().positive("Le montant doit être positif"),
+  amount: z.coerce.number().int("Nombre entier requis").positive("Le montant doit être positif"),
   due_date: z.coerce.date().optional(),
 });
 

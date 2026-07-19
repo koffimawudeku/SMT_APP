@@ -96,7 +96,7 @@ function KpiCard({ label, value }: { label: string; value: number }) {
     <div className="rounded-lg bg-white p-4">
       <p className="text-sm text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-medium">
-        {new Intl.NumberFormat("fr-FR").format(value)} FCFA
+        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value)} FCFA
       </p>
     </div>
   );

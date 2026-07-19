@@ -116,7 +116,7 @@ export default function TransactionActions({
                 type="number"
                 required
                 min={0}
-                step="0.01"
+                step="1"
                 defaultValue={transaction.amount}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                 placeholder="Montant"

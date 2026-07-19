@@ -21,7 +21,7 @@ export default async function DettesCreancesPage() {
     .eq("company_id", companyId)
     .order("due_date", { ascending: true });
 
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   const totals = (items ?? []).reduce(
     (acc, item) => {

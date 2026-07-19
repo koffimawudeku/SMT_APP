@@ -71,7 +71,7 @@ export default function SaisieForm({
           type="number"
           required
           min={0}
-          step="0.01"
+          step="1"
           className="w-full rounded-md border border-gray-300 px-3 py-2"
           placeholder="0"
         />

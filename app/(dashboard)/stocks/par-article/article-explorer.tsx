@@ -63,7 +63,7 @@ export default function ArticleExplorer({
     0
   );
 
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   if (articles.length === 0) {
     return (

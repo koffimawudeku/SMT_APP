@@ -7,10 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 const assetSchema = z.object({
   name: z.string().min(1, "La désignation est requise"),
   acquisition_date: z.coerce.date(),
-  acquisition_value: z.coerce.number().positive("La valeur doit être positive"),
-  useful_life_years: z.coerce.number().positive("La durée de vie doit être positive"),
+  acquisition_value: z.coerce.number().int("Nombre entier requis").positive("La valeur doit être positive"),
+  useful_life_years: z.coerce.number().int("Nombre entier requis").positive("La durée de vie doit être positive"),
   exit_date: z.coerce.date().optional(),
-  exit_price: z.coerce.number().min(0).optional(),
+  exit_price: z.coerce.number().int("Nombre entier requis").min(0).optional(),
 });
 
 export async function createAsset(companyId: string, formData: FormData) {

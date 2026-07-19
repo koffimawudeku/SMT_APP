@@ -71,7 +71,7 @@ export default function DebtForm({ companyId }: { companyId: string }) {
           type="number"
           required
           min={0}
-          step="0.01"
+          step="1"
           placeholder="Montant"
           className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-sm"
         />

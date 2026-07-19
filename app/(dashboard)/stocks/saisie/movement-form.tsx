@@ -101,7 +101,7 @@ export default function MovementForm({
               name="unit_cost"
               type="number"
               min={0}
-              step="0.01"
+              step="1"
               placeholder="Prix unitaire"
               className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-sm"
             />
@@ -110,7 +110,7 @@ export default function MovementForm({
             name="reorder_threshold"
             type="number"
             min={0}
-            step="0.01"
+            step="1"
             placeholder="Seuil d'alerte (optionnel)"
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
           />
@@ -178,7 +178,7 @@ export default function MovementForm({
           type="number"
           required
           min={0}
-          step="0.01"
+          step="1"
           placeholder="Quantité"
           className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-sm"
         />

@@ -41,7 +41,7 @@ export default async function CompteResultatPage() {
   const n = buildResultat(transactions, assets ?? [], currentYear);
   const n1 = buildResultat(transactions, assets ?? [], previousYear);
 
-  const fmt = (val: number) => new Intl.NumberFormat("fr-FR").format(val);
+  const fmt = (val: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(val);
 
   const rows: { label: string; n1: number; n: number; bold?: boolean }[] = [
     { label: "Recettes sur ventes ou prestations de services", n1: n1.ventes, n: n.ventes },

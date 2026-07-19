@@ -58,7 +58,7 @@ export default function SettingsForm({
           name="initial_capital"
           type="number"
           min={0}
-          step="0.01"
+          step="1"
           defaultValue={currentInitialCapital}
           disabled={disabled}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"

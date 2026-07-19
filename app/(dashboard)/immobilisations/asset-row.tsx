@@ -23,7 +23,7 @@ export default function AssetRow({ asset }: { asset: Row }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fmt = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
+  const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   async function handleUpdate(formData: FormData) {
     setLoading(true);
@@ -70,7 +70,7 @@ export default function AssetRow({ asset }: { asset: Row }) {
             <input
               name="acquisition_value"
               type="number"
-              step="0.01"
+              step="1"
               defaultValue={asset.acquisition_value}
               className="w-28 rounded-md border border-gray-300 px-2 py-1 text-sm"
             />
@@ -89,7 +89,7 @@ export default function AssetRow({ asset }: { asset: Row }) {
             <input
               name="exit_price"
               type="number"
-              step="0.01"
+              step="1"
               defaultValue={asset.exit_price ?? ""}
               placeholder="Prix cession"
               className="w-28 rounded-md border border-gray-300 px-2 py-1 text-sm"

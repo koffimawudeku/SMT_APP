@@ -22,7 +22,7 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
   }
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("fr-FR", { notation: "compact" }).format(n);
+    new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 0 }).format(n);
 
   return (
     <ResponsiveContainer width="100%" height={260}>
@@ -40,7 +40,7 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
         />
         <Tooltip
           formatter={(value: number) => [
-            `${new Intl.NumberFormat("fr-FR").format(value)} FCFA`,
+            `${new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(value)} FCFA`,
             "Solde",
           ]}
           labelStyle={{ fontSize: 12 }}

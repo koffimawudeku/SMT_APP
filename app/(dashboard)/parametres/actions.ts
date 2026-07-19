@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const settingsSchema = z.object({
   name: z.string().min(1, "Le nom de l'entreprise est requis").max(255),
-  initial_capital: z.coerce.number().min(0).optional(),
+  initial_capital: z.coerce.number().int("Nombre entier requis").min(0).optional(),
 });
 
 export async function updateCompanyName(companyId: string, formData: FormData) {

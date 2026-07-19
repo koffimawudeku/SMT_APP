@@ -84,7 +84,7 @@ export default function MovementEditRow({
               name="quantity"
               type="number"
               min={0}
-              step="0.01"
+              step="1"
               defaultValue={movement.quantity}
               className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
             />
@@ -128,7 +128,7 @@ export default function MovementEditRow({
       <td className="px-3 py-2">{TYPE_LABELS[movement.type]}</td>
       <td className="px-3 py-2 text-right">
         {movement.type === "sortie" ? "-" : ""}
-        {new Intl.NumberFormat("fr-FR").format(movement.quantity)}
+        {new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(movement.quantity)}
       </td>
       <td className="px-3 py-2 text-gray-500">
         {movement.description ?? "—"}
