@@ -30,6 +30,7 @@ create table companies (
   sector varchar(100),
   default_currency varchar(3) default 'XOF',
   fiscal_year_start date default date_trunc('year', now()),
+  initial_capital decimal(15,2) default 0,
   created_at timestamptz default now()
 );
 

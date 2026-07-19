@@ -9,7 +9,7 @@ export async function getActiveCompany() {
 
   const { data: membership } = await supabase
     .from("company_members")
-    .select("company_id, role, companies(name)")
+    .select("company_id, role, companies(name, initial_capital)")
     .eq("user_id", user?.id)
     .limit(1)
     .single();
@@ -20,5 +20,8 @@ export async function getActiveCompany() {
     role: membership?.role ?? null,
     companyName:
       (membership?.companies as unknown as { name: string } | null)?.name ?? null,
+    initialCapital:
+      (membership?.companies as unknown as { initial_capital: number } | null)
+        ?.initial_capital ?? 0,
   };
 }

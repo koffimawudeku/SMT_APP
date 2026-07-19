@@ -6,10 +6,12 @@ import { updateCompanyName } from "./actions";
 export default function SettingsForm({
   companyId,
   currentName,
+  currentInitialCapital,
   disabled,
 }: {
   companyId: string;
   currentName: string;
+  currentInitialCapital: number;
   disabled: boolean;
 }) {
   const [message, setMessage] = useState<{
@@ -46,6 +48,24 @@ export default function SettingsForm({
           disabled={disabled}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm text-gray-600">
+          Capital initial (compte exploitant)
+        </label>
+        <input
+          name="initial_capital"
+          type="number"
+          min={0}
+          step="0.01"
+          defaultValue={currentInitialCapital}
+          disabled={disabled}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
+        />
+        <p className="mt-1 text-xs text-gray-400">
+          Utilisé comme Capitaux Propres de départ dans le Bilan.
+        </p>
       </div>
 
       {message && (

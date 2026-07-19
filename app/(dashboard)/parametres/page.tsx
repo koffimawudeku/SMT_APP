@@ -2,7 +2,8 @@ import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import SettingsForm from "./settings-form";
 
 export default async function ParametresPage() {
-  const { companyId, companyName, role } = await getActiveCompany();
+  const { companyId, companyName, initialCapital, role } =
+    await getActiveCompany();
 
   if (!companyId) {
     return (
@@ -25,6 +26,7 @@ export default async function ParametresPage() {
       <SettingsForm
         companyId={companyId}
         currentName={companyName ?? ""}
+        currentInitialCapital={initialCapital}
         disabled={role !== "owner"}
       />
     </div>

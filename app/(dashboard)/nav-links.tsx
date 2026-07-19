@@ -12,6 +12,8 @@ const NAV_ITEMS: {
   { href: "/saisie", label: "Saisie de flux" },
   { href: "/journal", label: "Journal" },
   { href: "/compte-resultat", label: "Compte de Résultat" },
+  { href: "/bilan", label: "Bilan" },
+  { href: "/ratios", label: "Analyse des Ratios" },
   { href: "/immobilisations", label: "Suivi du Matériel" },
   { href: "/dettes-creances", label: "Dettes & créances" },
   { href: "/stocks", label: "État global", group: "Stocks" },

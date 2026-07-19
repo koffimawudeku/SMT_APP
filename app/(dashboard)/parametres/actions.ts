@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const settingsSchema = z.object({
   name: z.string().min(1, "Le nom de l'entreprise est requis").max(255),
+  initial_capital: z.coerce.number().min(0).optional(),
 });
 
 export async function updateCompanyName(companyId: string, formData: FormData) {
@@ -13,6 +14,7 @@ export async function updateCompanyName(companyId: string, formData: FormData) {
 
   const parsed = settingsSchema.safeParse({
     name: formData.get("name"),
+    initial_capital: formData.get("initial_capital") || undefined,
   });
 
   if (!parsed.success) {
@@ -24,7 +26,12 @@ export async function updateCompanyName(companyId: string, formData: FormData) {
   // erreur silencieuse (0 ligne modifiée).
   const { error, data } = await supabase
     .from("companies")
-    .update({ name: parsed.data.name })
+    .update({
+      name: parsed.data.name,
+      ...(parsed.data.initial_capital !== undefined && {
+        initial_capital: parsed.data.initial_capital,
+      }),
+    })
     .eq("id", companyId)
     .select();
 
