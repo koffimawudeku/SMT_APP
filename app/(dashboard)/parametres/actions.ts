@@ -1,0 +1,45 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+
+const settingsSchema = z.object({
+  name: z.string().min(1, "Le nom de l'entreprise est requis").max(255),
+});
+
+export async function updateCompanyName(companyId: string, formData: FormData) {
+  const supabase = createClient();
+
+  const parsed = settingsSchema.safeParse({
+    name: formData.get("name"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  // La policy RLS "companies_update" (voir rls_policies.sql) doit exister
+  // pour que cette écriture soit autorisée ; sinon Supabase renverra une
+  // erreur silencieuse (0 ligne modifiée).
+  const { error, data } = await supabase
+    .from("companies")
+    .update({ name: parsed.data.name })
+    .eq("id", companyId)
+    .select();
+
+  if (error) {
+    return { error: "Erreur lors de la mise à jour." };
+  }
+
+  if (!data || data.length === 0) {
+    return {
+      error:
+        "Aucune ligne mise à jour — vérifiez que la policy RLS d'écriture sur companies existe.",
+    };
+  }
+
+  revalidatePath("/parametres");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
