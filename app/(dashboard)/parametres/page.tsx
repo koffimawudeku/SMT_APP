@@ -1,8 +1,9 @@
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import SettingsForm from "./settings-form";
+import LogoUploadForm from "./logo-upload-form";
 
 export default async function ParametresPage() {
-  const { companyId, companyName, initialCapital, role } =
+  const { companyId, companyName, initialCapital, logoUrl, role } =
     await getActiveCompany();
 
   if (!companyId) {
@@ -22,6 +23,14 @@ export default async function ParametresPage() {
           Seul le propriétaire du dossier peut modifier ces informations.
         </p>
       )}
+
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4">
+        <LogoUploadForm
+          companyId={companyId}
+          currentLogoUrl={logoUrl}
+          disabled={role !== "owner"}
+        />
+      </div>
 
       <SettingsForm
         companyId={companyId}

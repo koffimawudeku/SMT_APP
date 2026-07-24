@@ -31,6 +31,7 @@ create table companies (
   default_currency varchar(3) default 'XOF',
   fiscal_year_start date default date_trunc('year', now()),
   initial_capital decimal(15,2) default 0,
+  logo_url text,
   created_at timestamptz default now()
 );
 

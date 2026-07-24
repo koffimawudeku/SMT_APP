@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { companyId, companyName, organizationId } = await getActiveCompany();
+  const { companyId, companyName, organizationId, logoUrl } = await getActiveCompany();
 
   if (!companyId) {
     return <OnboardingForm />;
@@ -28,11 +28,21 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-60 flex-col border-r border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-4">
-          <p className="text-sm font-medium">
-            {companyName ?? "Aucune entreprise rattachée"}
-          </p>
-          <p className="text-xs text-gray-500">{user?.email}</p>
+        <div className="flex items-center gap-2 border-b border-gray-200 p-4">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt={companyName ?? "Logo"}
+              className="h-8 w-8 rounded object-contain"
+            />
+          )}
+          <div>
+            <p className="text-sm font-medium">
+              {companyName ?? "Aucune entreprise rattachée"}
+            </p>
+            <p className="text-xs text-gray-500">{user?.email}</p>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
