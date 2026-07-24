@@ -1,8 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import { computeBilan } from "@/lib/bilan";
+import {
+  getEarliestDataYear,
+  listExercices,
+  resolveExercice,
+} from "@/lib/exercice";
+import ExerciceSelector from "../exercice-selector";
+import PrintButton from "../print-button";
 
-export default async function BilanPage() {
+export default async function BilanPage({
+  searchParams,
+}: {
+  searchParams: { exercice?: string };
+}) {
   const { companyId, initialCapital } = await getActiveCompany();
 
   if (!companyId) {
@@ -14,19 +25,32 @@ export default async function BilanPage() {
   }
 
   const supabase = createClient();
-  const b = await computeBilan(supabase, companyId, initialCapital);
+  const exercice = resolveExercice(searchParams.exercice);
+  const b = await computeBilan(supabase, companyId, initialCapital, exercice);
+  const earliestYear = await getEarliestDataYear(supabase, companyId);
+  const years = listExercices(earliestYear, exercice.year);
 
   const ecart = b.totalActif - b.totalPassif;
   const equilibre = Math.abs(ecart) < 1;
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
-  const today = new Date();
+  const arreteLabel = exercice.isCurrent
+    ? new Date().toLocaleDateString("fr-FR")
+    : `31/12/${exercice.year}`;
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-xl font-medium">Bilan (SMT)</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        Situation patrimoniale au {today.toLocaleDateString("fr-FR")}
-      </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-xl font-medium">Bilan (SMT)</h1>
+          <p className="text-sm text-gray-500">
+            Situation patrimoniale au {arreteLabel}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <ExerciceSelector years={years} selected={exercice.year} />
+          <PrintButton />
+        </div>
+      </div>
 
       {!equilibre && (
         <div className="mb-6 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -60,6 +84,11 @@ export default async function BilanPage() {
           </p>
           <dl className="space-y-2 p-4 text-sm">
             <Row label="Compte exploitant (capital initial)" value={initialCapital} fmt={fmt} />
+            <Row
+              label="Report à nouveau (résultats antérieurs)"
+              value={b.reportANouveau}
+              fmt={fmt}
+            />
             <Row label="Résultat de l'exercice" value={b.resultat.resultat} fmt={fmt} />
             <Row
               label="Emprunts et dettes financières"

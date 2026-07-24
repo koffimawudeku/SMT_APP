@@ -1,8 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import { buildResultat, type Txn } from "@/lib/compte-resultat";
+import {
+  getEarliestDataYear,
+  listExercices,
+  resolveExercice,
+} from "@/lib/exercice";
+import ExerciceSelector from "../exercice-selector";
+import PrintButton from "../print-button";
 
-export default async function CompteResultatPage() {
+export default async function CompteResultatPage({
+  searchParams,
+}: {
+  searchParams: { exercice?: string };
+}) {
   const { companyId } = await getActiveCompany();
 
   if (!companyId) {
@@ -14,6 +25,7 @@ export default async function CompteResultatPage() {
   }
 
   const supabase = createClient();
+  const exercice = resolveExercice(searchParams.exercice);
 
   const { data: rawTransactions } = await supabase
     .from("transactions")
@@ -35,7 +47,10 @@ export default async function CompteResultatPage() {
     )
     .eq("company_id", companyId);
 
-  const currentYear = new Date().getFullYear();
+  const earliestYear = await getEarliestDataYear(supabase, companyId);
+  const years = listExercices(earliestYear, exercice.year);
+
+  const currentYear = exercice.year;
   const previousYear = currentYear - 1;
 
   const n = buildResultat(transactions, assets ?? [], currentYear);
@@ -58,10 +73,18 @@ export default async function CompteResultatPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-xl font-medium">Compte de Résultat (SMT)</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        Comparatif Exercice {currentYear} / {previousYear}
-      </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-xl font-medium">Compte de Résultat (SMT)</h1>
+          <p className="text-sm text-gray-500">
+            Comparatif Exercice {currentYear} / {previousYear}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <ExerciceSelector years={years} selected={exercice.year} />
+          <PrintButton />
+        </div>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">

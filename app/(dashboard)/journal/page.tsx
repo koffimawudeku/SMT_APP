@@ -1,6 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
+import {
+  getEarliestDataYear,
+  listExercices,
+  resolveExercice,
+  yearOf,
+} from "@/lib/exercice";
 import TransactionActions from "./transaction-actions";
+import ExerciceSelector from "../exercice-selector";
+import PrintButton from "../print-button";
+import JournalExport from "./journal-export";
 
 // Ordre et libellés strictement identiques à l'onglet
 // "Journal Recettes Dépenses" du fichier Excel SMT.
@@ -28,7 +37,11 @@ type Row = {
   category_name: string | null;
 };
 
-export default async function JournalPage() {
+export default async function JournalPage({
+  searchParams,
+}: {
+  searchParams: { exercice?: string };
+}) {
   const { companyId } = await getActiveCompany();
 
   if (!companyId) {
@@ -40,6 +53,8 @@ export default async function JournalPage() {
   }
 
   const supabase = createClient();
+  const exercice = resolveExercice(searchParams.exercice);
+
   const { data: raw } = await supabase
     .from("transactions")
     .select(
@@ -55,7 +70,10 @@ export default async function JournalPage() {
     .eq("company_id", companyId)
     .order("name");
 
-  const transactions: Row[] = (raw ?? []).map((t) => ({
+  const earliestYear = await getEarliestDataYear(supabase, companyId);
+  const years = listExercices(earliestYear, exercice.year);
+
+  const allTransactions: Row[] = (raw ?? []).map((t) => ({
     id: t.id,
     transaction_date: t.transaction_date,
     description: t.description,
@@ -66,33 +84,78 @@ export default async function JournalPage() {
     category_name: (t.categories as unknown as { name: string } | null)?.name ?? null,
   }));
 
-  // Calcul des soldes courants Caisse et Banque, ligne par ligne,
-  // exactement comme les formules de la colonne E (Solde Caisse) et
-  // H (Solde Banque) dans le fichier Excel d'origine.
-  let soldeCaisse = 0;
-  let soldeBanque = 0;
+  // Soldes d'ouverture (report à nouveau) : cumul de tous les flux des
+  // exercices antérieurs, comme dans le fichier Excel où chaque nouvelle
+  // année reprend le solde de clôture de l'année précédente.
+  let openingCaisse = 0;
+  let openingBanque = 0;
+  for (const t of allTransactions) {
+    if (yearOf(t.transaction_date) >= exercice.year) continue;
+    const signed = t.type === "recette" ? t.amount : -t.amount;
+    if (t.payment_method === "caisse") openingCaisse += signed;
+    if (t.payment_method === "banque") openingBanque += signed;
+  }
 
-  const rows = transactions.map((t) => {
-    const isEntree = t.type === "recette";
-    const montantSigne = isEntree ? t.amount : -t.amount;
+  // Flux de l'exercice sélectionné, avec soldes courants qui repartent du
+  // report à nouveau.
+  let soldeCaisse = openingCaisse;
+  let soldeBanque = openingBanque;
+  const ventilationTotals: Record<string, number> = {};
 
-    if (t.payment_method === "caisse") soldeCaisse += montantSigne;
-    if (t.payment_method === "banque") soldeBanque += montantSigne;
+  const rows = allTransactions
+    .filter((t) => yearOf(t.transaction_date) === exercice.year)
+    .map((t) => {
+      const isEntree = t.type === "recette";
+      const montantSigne = isEntree ? t.amount : -t.amount;
 
-    return { ...t, soldeCaisse, soldeBanque };
-  });
+      if (t.payment_method === "caisse") soldeCaisse += montantSigne;
+      if (t.payment_method === "banque") soldeBanque += montantSigne;
+
+      if (t.category_name) {
+        ventilationTotals[t.category_name] =
+          (ventilationTotals[t.category_name] ?? 0) + t.amount;
+      }
+
+      return { ...t, soldeCaisse, soldeBanque };
+    });
 
   const fmt = (n: number) => new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 }).format(n);
 
   return (
     <div className="p-6">
-      <h1 className="mb-1 text-xl font-medium">Journal de Trésorerie SMT</h1>
-      <p className="mb-6 text-sm text-gray-500">Caisse et Banque</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-xl font-medium">Journal de Trésorerie SMT</h1>
+          <p className="text-sm text-gray-500">
+            Caisse et Banque — Exercice {exercice.year}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <ExerciceSelector years={years} selected={exercice.year} />
+          <JournalExport
+            rows={rows.map((r) => ({
+              transaction_date: r.transaction_date,
+              description: r.description,
+              type: r.type,
+              payment_method: r.payment_method,
+              amount: r.amount,
+              category_name: r.category_name,
+              soldeCaisse: r.soldeCaisse,
+              soldeBanque: r.soldeBanque,
+            }))}
+            ventilations={ALL_VENTILATIONS}
+            openingCaisse={openingCaisse}
+            openingBanque={openingBanque}
+            exercice={exercice.year}
+          />
+          <PrintButton />
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <p className="text-sm text-gray-500">
-          Aucun flux enregistré pour le moment. Rendez-vous sur{" "}
-          <span className="font-medium">Saisie de flux</span> pour ajouter le
+          Aucun flux enregistré pour l&apos;exercice {exercice.year}. Rendez-vous
+          sur <span className="font-medium">Saisie de flux</span> pour ajouter le
           premier.
         </p>
       ) : (
@@ -132,7 +195,7 @@ export default async function JournalPage() {
                 </th>
                 <th
                   rowSpan={2}
-                  className="border-b border-gray-200 bg-gray-100 px-2 py-1 text-center text-gray-600"
+                  className="border-b border-gray-200 bg-gray-100 px-2 py-1 text-center text-gray-600 print:hidden"
                 >
                   Actions
                 </th>
@@ -154,6 +217,25 @@ export default async function JournalPage() {
               </tr>
             </thead>
             <tbody>
+              <tr className="border-t border-gray-100 bg-gray-50 italic text-gray-500">
+                <td className="px-2 py-1" colSpan={2}>
+                  Report à nouveau (clôture {exercice.year - 1})
+                </td>
+                <td className="px-2 py-1"></td>
+                <td className="px-2 py-1"></td>
+                <td className="px-2 py-1 text-right font-medium">
+                  {fmt(openingCaisse)}
+                </td>
+                <td className="px-2 py-1"></td>
+                <td className="px-2 py-1"></td>
+                <td className="px-2 py-1 text-right font-medium">
+                  {fmt(openingBanque)}
+                </td>
+                {ALL_VENTILATIONS.map((v) => (
+                  <td key={v} className="px-2 py-1"></td>
+                ))}
+                <td className="px-2 py-1 print:hidden"></td>
+              </tr>
               {rows.map((r) => {
                 const isCaisse = r.payment_method === "caisse";
                 const isEntree = r.type === "recette";
@@ -187,7 +269,7 @@ export default async function JournalPage() {
                         {r.category_name === v ? fmt(r.amount) : ""}
                       </td>
                     ))}
-                    <td className="px-2 py-1">
+                    <td className="px-2 py-1 print:hidden">
                       <TransactionActions
                         transaction={r}
                         categories={categories ?? []}
@@ -197,6 +279,22 @@ export default async function JournalPage() {
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-gray-300 bg-gray-50 font-medium">
+                <td className="px-2 py-1" colSpan={4}>
+                  Totaux exercice {exercice.year}
+                </td>
+                <td className="px-2 py-1 text-right">{fmt(soldeCaisse)}</td>
+                <td className="px-2 py-1" colSpan={2}></td>
+                <td className="px-2 py-1 text-right">{fmt(soldeBanque)}</td>
+                {ALL_VENTILATIONS.map((v) => (
+                  <td key={v} className="px-2 py-1 text-right">
+                    {ventilationTotals[v] ? fmt(ventilationTotals[v]) : ""}
+                  </td>
+                ))}
+                <td className="px-2 py-1 print:hidden"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
@@ -204,15 +302,11 @@ export default async function JournalPage() {
       <div className="mt-4 flex gap-6 text-sm">
         <p>
           <span className="text-gray-500">Solde Caisse : </span>
-          <span className="font-medium">
-            {fmt(rows.at(-1)?.soldeCaisse ?? 0)} FCFA
-          </span>
+          <span className="font-medium">{fmt(soldeCaisse)} FCFA</span>
         </p>
         <p>
           <span className="text-gray-500">Solde Banque : </span>
-          <span className="font-medium">
-            {fmt(rows.at(-1)?.soldeBanque ?? 0)} FCFA
-          </span>
+          <span className="font-medium">{fmt(soldeBanque)} FCFA</span>
         </p>
       </div>
     </div>

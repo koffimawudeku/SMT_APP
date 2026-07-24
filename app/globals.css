@@ -5,3 +5,25 @@
 body {
   @apply bg-gray-50 text-gray-900;
 }
+
+/* Impression / export PDF des états financiers : on masque la barre
+   latérale et les contrôles interactifs, et on neutralise les fonds pour
+   économiser l'encre tout en gardant des tableaux lisibles. */
+@media print {
+  aside,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  main {
+    background: #fff !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  @page {
+    margin: 1.5cm;
+  }
+}

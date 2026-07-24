@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import { computeBilan } from "@/lib/bilan";
+import {
+  getEarliestDataYear,
+  listExercices,
+  resolveExercice,
+} from "@/lib/exercice";
+import ExerciceSelector from "../exercice-selector";
+import PrintButton from "../print-button";
 
 type Level = "bon" | "alerte" | "critique";
 
@@ -35,7 +42,11 @@ function RatioCard({
   );
 }
 
-export default async function RatiosPage() {
+export default async function RatiosPage({
+  searchParams,
+}: {
+  searchParams: { exercice?: string };
+}) {
   const { companyId, initialCapital } = await getActiveCompany();
 
   if (!companyId) {
@@ -47,7 +58,10 @@ export default async function RatiosPage() {
   }
 
   const supabase = createClient();
-  const b = await computeBilan(supabase, companyId, initialCapital);
+  const exercice = resolveExercice(searchParams.exercice);
+  const b = await computeBilan(supabase, companyId, initialCapital, exercice);
+  const earliestYear = await getEarliestDataYear(supabase, companyId);
+  const years = listExercices(earliestYear, exercice.year);
 
   const chiffreAffaires = b.resultat.totalRecettes;
   const achatsConsommes = b.resultat.achats;
@@ -80,10 +94,19 @@ export default async function RatiosPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-xl font-medium">Analyse des Ratios Financiers</h1>
-      <p className="mb-6 text-sm text-gray-500">
-        Calculés à partir du Compte de Résultat et du Bilan courants.
-      </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-xl font-medium">Analyse des Ratios Financiers</h1>
+          <p className="text-sm text-gray-500">
+            Calculés à partir du Compte de Résultat et du Bilan de l&apos;exercice{" "}
+            {exercice.year}.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <ExerciceSelector years={years} selected={exercice.year} />
+          <PrintButton />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <RatioCard

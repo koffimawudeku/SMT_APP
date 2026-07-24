@@ -199,7 +199,10 @@ Cette fonction ne s'exécute que pour les **futurs** comptes créés via
 - `/login` — connexion (avec lien vers l'inscription)
 - `/dashboard` — KPIs, courbe d'évolution du solde de trésorerie
 - `/saisie` — saisie de flux (recette/dépense, Caisse ou Banque)
-- `/journal` — journal Caisse/Banque avec ventilations et soldes courants séparés, modification/suppression par ligne
+- `/journal` — journal Caisse/Banque filtrable par **exercice comptable**, avec report à nouveau (soldes d'ouverture), ventilations, soldes courants séparés, totaux en pied de tableau, **export CSV** (compatible Excel) et impression PDF ; modification/suppression par ligne
+- `/compte-resultat` — compte de résultat comparatif N/N-1, sélecteur d'exercice, impression PDF
+- `/bilan` — bilan patrimonial arrêté à la date de clôture de l'exercice sélectionné, avec **report à nouveau** des résultats antérieurs (équilibre multi-exercices), impression PDF
+- `/ratios` — ratios financiers calculés sur l'exercice sélectionné, impression PDF
 - `/dettes-creances` — suivi des créances/dettes avec libellé et synthèse des totaux/réglé/solde
 - `/stocks` — État global : tableau récapitulatif de tous les articles
 - `/stocks/saisie` — Stock Input : Stock Initial, Entrée, Sortie, création d'article à la volée
