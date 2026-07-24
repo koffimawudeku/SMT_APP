@@ -193,6 +193,35 @@ $$ language plpgsql security definer;
 Cette fonction ne s'exécute que pour les **futurs** comptes créés via
 `/signup` — elle ne modifie rien pour les comptes déjà existants.
 
+## Migration : invitation de collaborateurs (mode cabinet)
+
+Cette version permet à un `owner` d'inviter des collaborateurs sur un
+dossier depuis `/parametres`. Si votre base existait déjà, créez la table
+d'invitations dans le SQL Editor :
+
+```sql
+create table company_invitations (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references companies(id) on delete cascade not null,
+  email varchar(255) not null,
+  role varchar(50) check (role in ('owner', 'consultant', 'comptable', 'viewer')) not null,
+  status varchar(20) default 'pending' check (status in ('pending', 'accepted', 'revoked')),
+  invited_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  accepted_at timestamptz,
+  unique (company_id, email)
+);
+
+alter table company_invitations enable row level security;
+create policy "company_invitations_select" on company_invitations
+  for select using (public.has_company_access(company_id));
+```
+
+Un collaborateur déjà inscrit est rattaché immédiatement ; sinon
+l'invitation reste `pending` et est consommée automatiquement à sa
+première connexion. Sans cette table, le formulaire d'invitation renvoie
+une erreur mais le reste de l'application continue de fonctionner.
+
 ## Pages disponibles
 
 - `/signup` — inscription libre ; crée automatiquement une entreprise dédiée et isolée pour chaque nouveau compte

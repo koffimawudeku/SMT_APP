@@ -63,6 +63,13 @@ create policy "companies_update" on companies
 create policy "company_members_select" on company_members
   for select using (public.has_company_access(company_id));
 
+-- Invitations : visibles par les membres du dossier concerné. Les écritures
+-- (créer/révoquer/accepter) passent exclusivement par la clé service dans
+-- lib/members.ts et members-actions.ts, après contrôle du rôle owner.
+alter table company_invitations enable row level security;
+create policy "company_invitations_select" on company_invitations
+  for select using (public.has_company_access(company_id));
+
 -- Politique générique appliquée à toutes les tables métier :
 -- lecture pour tout membre, écriture réservée à owner/comptable
 create policy "categories_select" on categories

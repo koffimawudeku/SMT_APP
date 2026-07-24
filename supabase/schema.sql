@@ -131,6 +131,22 @@ create table subscriptions (
   created_at timestamptz default now()
 );
 
+-- Invitations de collaborateurs à un dossier (mode cabinet). Un owner
+-- invite par email ; si l'invité n'a pas encore de compte, l'invitation
+-- reste 'pending' et est consommée automatiquement à sa première
+-- connexion (voir lib/members.ts / acceptPendingInvitations).
+create table company_invitations (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references companies(id) on delete cascade not null,
+  email varchar(255) not null,
+  role varchar(50) check (role in ('owner', 'consultant', 'comptable', 'viewer')) not null,
+  status varchar(20) default 'pending' check (status in ('pending', 'accepted', 'revoked')),
+  invited_by uuid references profiles(id),
+  created_at timestamptz default now(),
+  accepted_at timestamptz,
+  unique (company_id, email)
+);
+
 -- Vue : Compte de résultat simplifié, agrégé par mois
 create view v_compte_resultat as
 select

@@ -1,6 +1,8 @@
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
+import { getCompanyMembers } from "@/lib/members";
 import SettingsForm from "./settings-form";
 import LogoUploadForm from "./logo-upload-form";
+import MembersManager from "./members-manager";
 
 export default async function ParametresPage() {
   const { companyId, companyName, initialCapital, logoUrl, role } =
@@ -13,6 +15,8 @@ export default async function ParametresPage() {
       </div>
     );
   }
+
+  const { members, invitations, canManage } = await getCompanyMembers(companyId);
 
   return (
     <div className="mx-auto max-w-md p-6">
@@ -38,6 +42,15 @@ export default async function ParametresPage() {
         currentInitialCapital={initialCapital}
         disabled={role !== "owner"}
       />
+
+      <div className="mt-6">
+        <MembersManager
+          companyId={companyId}
+          members={members}
+          invitations={invitations}
+          canManage={canManage}
+        />
+      </div>
     </div>
   );
 }

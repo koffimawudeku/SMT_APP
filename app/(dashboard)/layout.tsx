@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
+import { acceptPendingInvitations } from "@/lib/members";
 import { getSubscriptionStatus } from "@/lib/subscription";
 import LogoutButton from "./logout-button";
 import NavLinks from "./nav-links";
@@ -17,6 +18,10 @@ export default async function DashboardLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Rattache l'utilisateur aux dossiers pour lesquels il a été invité avant
+  // d'avoir un compte (invitations consommées à la première connexion).
+  await acceptPendingInvitations();
 
   const { companyId, companyName, organizationId, logoUrl, companies } =
     await getActiveCompany();
