@@ -53,9 +53,9 @@ export async function middleware(request: NextRequest) {
     "/abonnement",
     "/admin",
   ];
-  const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
-    request.nextUrl.pathname.startsWith(p)
-  );
+  const isProtectedRoute =
+    PROTECTED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p)) &&
+    !request.nextUrl.pathname.startsWith("/admin/login");
   const isAbonnementRoute = request.nextUrl.pathname.startsWith("/abonnement");
   const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
 

@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/admin-guard";
-import LogoutButton from "../(dashboard)/logout-button";
+import LogoutButton from "../../(dashboard)/logout-button";
 
 export default async function AdminLayout({
   children,

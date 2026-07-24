@@ -13,6 +13,8 @@ type Org = {
   plan: string | null;
   status: string | null;
   currentPeriodEnd: string | null;
+  emailConfirmed: boolean;
+  lastSignInAt: string | null;
 };
 
 function statusBadge(status: string | null, currentPeriodEnd: string | null) {
@@ -58,6 +60,22 @@ export default function OrgRow({ org }: { org: Org }) {
       </td>
       <td className="px-4 py-2 text-gray-500">
         {new Date(org.createdAt).toLocaleDateString("fr-FR")}
+      </td>
+      <td className="px-4 py-2 text-gray-500">
+        {org.lastSignInAt
+          ? new Date(org.lastSignInAt).toLocaleDateString("fr-FR")
+          : "Jamais connecté"}
+      </td>
+      <td className="px-4 py-2">
+        {org.emailConfirmed ? (
+          <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+            Confirmé
+          </span>
+        ) : (
+          <span className="rounded-full bg-orange-100 px-2 py-1 text-xs text-orange-700">
+            Non confirmé
+          </span>
+        )}
       </td>
       <td className="px-4 py-2">
         <span className={`rounded-full px-2 py-1 text-xs ${badge.color}`}>
