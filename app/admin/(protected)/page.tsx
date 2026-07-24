@@ -26,7 +26,7 @@ export default async function AdminPage() {
             admin
               .from("organizations")
               .select(
-                "id, name, type, created_at, profiles(id, email, full_name), subscriptions(plan, status, current_period_end, created_at)"
+                "id, name, type, created_at, profiles(id, email, full_name), subscriptions(plan, status, current_period_end)"
               )
               .order("created_at", { ascending: false }),
             admin.auth.admin.listUsers(),
@@ -97,11 +97,20 @@ export default async function AdminPage() {
       | { id: string; email: string; full_name: string | null }[]
       | null)?.[0];
     const subs = (org.subscriptions as unknown as
-      | { plan: string; status: string; current_period_end: string | null; created_at: string }[]
+      | { plan: string; status: string; current_period_end: string | null }[]
       | null) ?? [];
-    const latestSub = [...subs].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
+    // Trié par échéance décroissante : `subscriptions.created_at` n'existe
+    // pas sur les bases créées avant son ajout au schéma, et le reste de
+    // l'application (middleware, lib/subscription) utilise déjà ce critère.
+    const latestSub = [...subs].sort((a, b) => {
+      const ta = a.current_period_end
+        ? new Date(a.current_period_end).getTime()
+        : 0;
+      const tb = b.current_period_end
+        ? new Date(b.current_period_end).getTime()
+        : 0;
+      return tb - ta;
+    })[0];
     const authUser = owner ? authUserById.get(owner.id) : undefined;
 
     return {
