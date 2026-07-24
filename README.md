@@ -236,7 +236,10 @@ une erreur mais le reste de l'application continue de fonctionner.
 - `/stocks` — État global : tableau récapitulatif de tous les articles
 - `/stocks/saisie` — Stock Input : Stock Initial, Entrée, Sortie, création d'article à la volée
 - `/stocks/par-article` — Stock par article : historique filtrable par période, modification/suppression
-- `/parametres` — modification du nom de l'entreprise (réservé au rôle `owner`)
+- `/parametres` — nom de l'entreprise, capital initial, logo (réservé au rôle `owner`) et gestion des collaborateurs (invitation par email, rôles, retrait)
+- `/admin/login` — connexion réservée aux administrateurs de la plateforme (`profiles.is_platform_admin`)
+- `/admin` — inscriptions : organisations, propriétaire, nombre de dossiers/membres, abonnement, prolongation d'essai et activation manuelle
+- `/admin/utilisateurs` — tous les comptes de la plateforme : nom, email, organisation, dossiers et rôles, dernière connexion, confirmation d'email, recherche
 
 ## Déploiement (GitHub + Vercel)
 
