@@ -24,10 +24,8 @@ export default function LoginPage() {
     });
 
     if (error) {
-      // Temporaire : affiche le message exact de Supabase pour diagnostiquer.
-      // À remettre en message générique une fois le problème résolu.
       console.error("Erreur de connexion Supabase :", error);
-      setError(`[DEBUG] ${error.message} (code: ${error.status ?? "?"})`);
+      setError("Email ou mot de passe incorrect.");
       setLoading(false);
       return;
     }
@@ -83,6 +81,12 @@ export default function LoginPage() {
           Pas encore de compte ?{" "}
           <Link href="/signup" className="text-primary">
             Créer un compte
+          </Link>
+        </p>
+
+        <p className="text-center text-xs text-gray-400">
+          <Link href="/admin/login" className="hover:text-gray-600">
+            Accès administrateur
           </Link>
         </p>
       </form>

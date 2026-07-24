@@ -10,6 +10,9 @@ type Org = {
   createdAt: string;
   ownerEmail: string;
   ownerName: string;
+  dossiers: number;
+  members: number;
+  pendingInvites: number;
   plan: string | null;
   status: string | null;
   currentPeriodEnd: string | null;
@@ -57,6 +60,18 @@ export default function OrgRow({ org }: { org: Org }) {
       <td className="px-4 py-2">
         <div>{org.ownerName}</div>
         <div className="text-xs text-gray-400">{org.ownerEmail}</div>
+      </td>
+      <td className="px-4 py-2 text-center text-gray-600">{org.dossiers}</td>
+      <td className="px-4 py-2 text-center text-gray-600">
+        {org.members}
+        {org.pendingInvites > 0 && (
+          <span
+            className="ml-1 rounded-full bg-orange-100 px-1.5 py-0.5 text-xs text-orange-700"
+            title={`${org.pendingInvites} invitation(s) en attente`}
+          >
+            +{org.pendingInvites}
+          </span>
+        )}
       </td>
       <td className="px-4 py-2 text-gray-500">
         {new Date(org.createdAt).toLocaleDateString("fr-FR")}
