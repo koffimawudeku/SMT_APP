@@ -20,6 +20,7 @@ const NAV_ITEMS: {
   { href: "/stocks/saisie", label: "Stock Input", group: "Stocks" },
   { href: "/stocks/par-article", label: "Stock par article", group: "Stocks" },
   { href: "/parametres", label: "Paramètres" },
+  { href: "/abonnement", label: "Abonnement" },
 ];
 
 export default function NavLinks() {

@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveCompany } from "@/lib/supabase/get-active-company";
+import { getSubscriptionStatus } from "@/lib/subscription";
 import LogoutButton from "./logout-button";
 import NavLinks from "./nav-links";
+import OnboardingForm from "./onboarding/onboarding-form";
 
 export default async function DashboardLayout({
   children,
@@ -13,28 +17,36 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: membership } = await supabase
-    .from("company_members")
-    .select("companies(name)")
-    .eq("user_id", user?.id)
-    .limit(1)
-    .single();
+  const { companyId, companyName, organizationId } = await getActiveCompany();
 
-  const companyName =
-    (membership?.companies as unknown as { name: string } | null)?.name ??
-    "Aucune entreprise rattachée";
+  if (!companyId) {
+    return <OnboardingForm />;
+  }
+
+  const sub = await getSubscriptionStatus(supabase, organizationId);
 
   return (
     <div className="flex min-h-screen">
       <aside className="flex w-60 flex-col border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 p-4">
-          <p className="text-sm font-medium">{companyName}</p>
+          <p className="text-sm font-medium">
+            {companyName ?? "Aucune entreprise rattachée"}
+          </p>
           <p className="text-xs text-gray-500">{user?.email}</p>
         </div>
 
         <nav className="flex-1 space-y-1 p-3">
           <NavLinks />
         </nav>
+
+        {sub.status === "trialing" && sub.isActive && (
+          <Link
+            href="/abonnement"
+            className="mx-3 mb-2 block rounded-md bg-orange-50 px-3 py-2 text-xs text-orange-700"
+          >
+            Essai : {sub.daysRemaining} jour(s) restant(s)
+          </Link>
+        )}
 
         <div className="border-t border-gray-200 p-3">
           <LogoutButton />

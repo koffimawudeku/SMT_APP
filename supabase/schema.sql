@@ -121,11 +121,12 @@ create table debts_receivables (
 create table subscriptions (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references organizations(id) on delete cascade,
-  plan varchar(50),
-  status varchar(20) check (status in ('active', 'trialing', 'past_due', 'canceled')),
+  plan varchar(50) check (plan in ('trial', 'monthly', 'annual')),
+  status varchar(20) check (status in ('trialing', 'pending', 'active', 'past_due', 'canceled', 'expired')),
   payment_provider varchar(20),
   external_subscription_id varchar(255),
-  current_period_end timestamptz
+  current_period_end timestamptz,
+  created_at timestamptz default now()
 );
 
 -- Vue : Compte de résultat simplifié, agrégé par mois
@@ -183,6 +184,9 @@ begin
 
   insert into company_members (company_id, user_id, role)
   values (new_company_id, new.id, 'owner');
+
+  insert into subscriptions (organization_id, plan, status, current_period_end)
+  values (new_org_id, 'trial', 'trialing', now() + interval '30 days');
 
   insert into categories (company_id, name, type) values
     (new_company_id, 'Ventes', 'recette'),

@@ -38,9 +38,24 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
-  const isProtectedRoute =
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/saisie");
+
+  const PROTECTED_PREFIXES = [
+    "/dashboard",
+    "/saisie",
+    "/journal",
+    "/dettes-creances",
+    "/stocks",
+    "/parametres",
+    "/immobilisations",
+    "/compte-resultat",
+    "/bilan",
+    "/ratios",
+    "/abonnement",
+  ];
+  const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
+    request.nextUrl.pathname.startsWith(p)
+  );
+  const isAbonnementRoute = request.nextUrl.pathname.startsWith("/abonnement");
 
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -48,6 +63,38 @@ export async function middleware(request: NextRequest) {
 
   if (user && isAuthRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Paywall : essai/abonnement expiré → redirige vers /abonnement,
+  // sauf si l'utilisateur y est déjà (pour pouvoir payer).
+  if (user && isProtectedRoute && !isAbonnementRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.organization_id) {
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("organization_id", profile.organization_id)
+        .order("current_period_end", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const periodEnd = subscription?.current_period_end
+        ? new Date(subscription.current_period_end)
+        : null;
+      const isWithinPeriod = periodEnd ? periodEnd.getTime() > Date.now() : false;
+      const isActive =
+        (subscription?.status === "trialing" || subscription?.status === "active") &&
+        isWithinPeriod;
+
+      if (!isActive) {
+        return NextResponse.redirect(new URL("/abonnement", request.url));
+      }
+    }
   }
 
   return response;

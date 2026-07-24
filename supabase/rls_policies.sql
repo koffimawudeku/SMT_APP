@@ -14,6 +14,16 @@ alter table assets enable row level security;
 alter table debts_receivables enable row level security;
 alter table subscriptions enable row level security;
 
+-- Lecture seule pour les membres de l'organisation concernée.
+-- Aucune policy d'écriture : les insert/update passent exclusivement par
+-- la clé service (webhook de paiement CinetPay), qui contourne la RLS.
+create policy "subscriptions_select" on subscriptions
+  for select using (
+    organization_id in (
+      select organization_id from profiles where id = auth.uid()
+    )
+  );
+
 -- Fonction helper : l'utilisateur courant a-t-il accès à ce company_id ?
 create function public.has_company_access(target_company_id uuid)
 returns boolean as $$
