@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Search, ShieldCheck } from "lucide-react";
+import UserRowActions from "./user-row-actions";
 
 export type AdminUser = {
   id: string;
@@ -10,6 +11,7 @@ export type AdminUser = {
   organization: string | null;
   isPlatformAdmin: boolean;
   emailConfirmed: boolean;
+  banned: boolean;
   createdAt: string;
   lastSignInAt: string | null;
   dossiers: { name: string; role: string }[];
@@ -26,8 +28,18 @@ function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleDateString("fr-FR") : "—";
 }
 
-export default function UsersTable({ users }: { users: AdminUser[] }) {
+export default function UsersTable({
+  users,
+  currentUserId,
+}: {
+  users: AdminUser[];
+  currentUserId: string | null;
+}) {
   const [query, setQuery] = useState("");
+  const [message, setMessage] = useState<{
+    type: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -54,6 +66,18 @@ export default function UsersTable({ users }: { users: AdminUser[] }) {
         />
       </div>
 
+      {message && (
+        <p
+          className={`mb-3 rounded-md px-3 py-2 text-sm ${
+            message.type === "ok"
+              ? "bg-green-50 text-green-700"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
@@ -64,6 +88,7 @@ export default function UsersTable({ users }: { users: AdminUser[] }) {
               <th className="px-4 py-2">Inscrit le</th>
               <th className="px-4 py-2">Dernière connexion</th>
               <th className="px-4 py-2">Email</th>
+              <th className="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -72,6 +97,11 @@ export default function UsersTable({ users }: { users: AdminUser[] }) {
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-1.5">
                     <span className="font-medium">{u.fullName || "—"}</span>
+                    {u.banned && (
+                      <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
+                        Suspendu
+                      </span>
+                    )}
                     {u.isPlatformAdmin && (
                       <span
                         title="Administrateur de la plateforme"
@@ -123,6 +153,13 @@ export default function UsersTable({ users }: { users: AdminUser[] }) {
                       Non confirmé
                     </span>
                   )}
+                </td>
+                <td className="px-4 py-2">
+                  <UserRowActions
+                    user={u}
+                    isSelf={u.id === currentUserId}
+                    onMessage={setMessage}
+                  />
                 </td>
               </tr>
             ))}

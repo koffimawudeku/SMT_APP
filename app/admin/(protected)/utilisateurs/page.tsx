@@ -19,6 +19,7 @@ async function listAllAuthUsers(
     created_at: string;
     last_sign_in_at?: string | null;
     email_confirmed_at?: string | null;
+    banned_until?: string | null;
   }[] = [];
 
   for (let page = 1; page <= 20; page++) {
@@ -35,7 +36,7 @@ async function listAllAuthUsers(
 }
 
 export default async function AdminUsersPage() {
-  await requireAdmin();
+  const { user: currentAdmin } = await requireAdmin();
 
   const admin = createAdminClient();
 
@@ -81,6 +82,10 @@ export default async function AdminUsersPage() {
         organization,
         isPlatformAdmin: Boolean(profile?.is_platform_admin),
         emailConfirmed: Boolean(u.email_confirmed_at),
+        // `banned_until` est une date future tant que le compte est suspendu.
+        banned: Boolean(
+          u.banned_until && new Date(u.banned_until).getTime() > Date.now()
+        ),
         createdAt: u.created_at,
         lastSignInAt: u.last_sign_in_at ?? null,
         dossiers: dossiersByUser.get(u.id) ?? [],
@@ -92,6 +97,7 @@ export default async function AdminUsersPage() {
 
   const confirmedCount = users.filter((u) => u.emailConfirmed).length;
   const neverSignedIn = users.filter((u) => !u.lastSignInAt).length;
+  const bannedCount = users.filter((u) => u.banned).length;
 
   return (
     <div className="p-6">
@@ -101,12 +107,13 @@ export default async function AdminUsersPage() {
           <p className="text-sm text-gray-500">
             {users.length} compte(s) · {confirmedCount} email(s) confirmé(s) ·{" "}
             {neverSignedIn} jamais connecté(s)
+            {bannedCount > 0 && ` · ${bannedCount} suspendu(s)`}
           </p>
         </div>
         <RefreshButton />
       </div>
 
-      <UsersTable users={users} />
+      <UsersTable users={users} currentUserId={currentAdmin.id} />
     </div>
   );
 }
