@@ -186,7 +186,7 @@ begin
   values (new_company_id, new.id, 'owner');
 
   insert into subscriptions (organization_id, plan, status, current_period_end)
-  values (new_org_id, 'trial', 'trialing', now() + interval '30 days');
+  values (new_org_id, 'trial', 'trialing', now() + interval '14 days');
 
   insert into categories (company_id, name, type) values
     (new_company_id, 'Ventes', 'recette'),

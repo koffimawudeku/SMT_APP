@@ -90,6 +90,15 @@ export async function createCompanyForCurrentUser(formData: FormData) {
     return { error: "Erreur lors du rattachement à l'entreprise." };
   }
 
+  await admin.from("subscriptions").insert({
+    organization_id: org.id,
+    plan: "trial",
+    status: "trialing",
+    current_period_end: new Date(
+      Date.now() + 14 * 24 * 60 * 60 * 1000
+    ).toISOString(),
+  });
+
   await admin.from("categories").insert(
     DEFAULT_CATEGORIES.map((c) => ({
       company_id: company.id,
