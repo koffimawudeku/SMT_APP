@@ -8,31 +8,59 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   await requireAdmin();
 
-  const admin = createAdminClient();
+  // Sans la clé service_role, toutes les requêtes ci-dessous échouent
+  // silencieusement (data: null) et la page reste vide : on le signale.
+  const missingServiceKey = !process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const [
-    { data: organizations },
-    { data: authUsers },
-    { data: companies },
-    { data: members },
-    { data: invitations },
-  ] = await Promise.all([
-    admin
-      .from("organizations")
-      .select(
-        "id, name, type, created_at, profiles(id, email, full_name), subscriptions(plan, status, current_period_end, created_at)"
-      )
-      .order("created_at", { ascending: false }),
-    admin.auth.admin.listUsers(),
-    admin.from("companies").select("id, organization_id"),
-    admin.from("company_members").select("user_id, companies(organization_id)"),
-    // Table possiblement absente tant que la migration n'est pas jouée :
-    // Supabase renvoie alors data:null (pas d'exception), on dégrade à 0.
-    admin
-      .from("company_invitations")
-      .select("id, companies(organization_id)")
-      .eq("status", "pending"),
-  ]);
+  // `createAdminClient()` lèverait une exception sans la clé : on n'exécute
+  // les requêtes que si elle est présente, pour pouvoir afficher le
+  // diagnostic plutôt qu'une page d'erreur.
+  const empty = { data: null, error: null } as const;
+
+  const [orgRes, authRes, companiesRes, membersRes, invitationsRes] =
+    missingServiceKey
+      ? [empty, empty, empty, empty, empty]
+      : await (async () => {
+          const admin = createAdminClient();
+          return Promise.all([
+            admin
+              .from("organizations")
+              .select(
+                "id, name, type, created_at, profiles(id, email, full_name), subscriptions(plan, status, current_period_end, created_at)"
+              )
+              .order("created_at", { ascending: false }),
+            admin.auth.admin.listUsers(),
+            admin.from("companies").select("id, organization_id"),
+            admin
+              .from("company_members")
+              .select("user_id, companies(organization_id)"),
+            admin
+              .from("company_invitations")
+              .select("id, companies(organization_id)")
+              .eq("status", "pending"),
+          ]);
+        })();
+
+  const organizations = orgRes.data;
+  const authUsers = authRes.data;
+  const companies = companiesRes.data;
+  const members = membersRes.data;
+  const invitations = invitationsRes.data;
+
+  // Diagnostics : on remonte chaque échec au lieu d'afficher un tableau vide.
+  const errors: string[] = [];
+  if (missingServiceKey) {
+    errors.push(
+      "SUPABASE_SERVICE_ROLE_KEY est absente côté serveur — ajoutez-la dans les variables d'environnement (Vercel > Settings > Environment Variables) puis redéployez."
+    );
+  }
+  if (orgRes.error) errors.push(`organizations : ${orgRes.error.message}`);
+  if (authRes.error) errors.push(`comptes auth : ${authRes.error.message}`);
+  if (companiesRes.error) errors.push(`companies : ${companiesRes.error.message}`);
+  if (membersRes.error) errors.push(`company_members : ${membersRes.error.message}`);
+  // Table optionnelle tant que la migration des invitations n'est pas jouée :
+  // on n'en fait pas une erreur bloquante, juste une note.
+  const invitationsUnavailable = Boolean(invitationsRes.error);
 
   const authUserById = new Map(
     (authUsers?.users ?? []).map((u) => [u.id, u])
@@ -114,6 +142,27 @@ export default async function AdminPage() {
         <RefreshButton />
       </div>
 
+      {errors.length > 0 && (
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          <p className="mb-1 font-medium">
+            Les données n&apos;ont pas pu être chargées :
+          </p>
+          <ul className="list-inside list-disc space-y-1 text-xs">
+            {errors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {invitationsUnavailable && errors.length === 0 && (
+        <div className="mb-4 rounded-md border border-orange-200 bg-orange-50 p-3 text-xs text-orange-700">
+          La table <code>company_invitations</code> n&apos;existe pas encore :
+          la colonne Membres n&apos;affiche pas les invitations en attente.
+          Exécutez la migration indiquée dans le README.
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left text-gray-500">
@@ -136,6 +185,12 @@ export default async function AdminPage() {
             ))}
           </tbody>
         </table>
+
+        {rows.length === 0 && errors.length === 0 && (
+          <p className="px-4 py-6 text-center text-sm text-gray-500">
+            Aucune organisation inscrite pour le moment.
+          </p>
+        )}
       </div>
     </div>
   );

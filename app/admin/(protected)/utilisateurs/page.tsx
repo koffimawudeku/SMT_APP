@@ -38,20 +38,40 @@ async function listAllAuthUsers(
 export default async function AdminUsersPage() {
   const { user: currentAdmin } = await requireAdmin();
 
+  // Sans la clé service_role, `createAdminClient()` lèverait une exception :
+  // on affiche un diagnostic explicite plutôt qu'une page d'erreur.
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return (
+      <div className="p-6">
+        <h1 className="mb-4 text-xl font-medium">Utilisateurs</h1>
+        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          SUPABASE_SERVICE_ROLE_KEY est absente côté serveur — ajoutez-la dans
+          les variables d&apos;environnement (Vercel &gt; Settings &gt;
+          Environment Variables) puis redéployez.
+        </div>
+      </div>
+    );
+  }
+
   const admin = createAdminClient();
 
-  const [authUsers, { data: profiles }, { data: memberships }] =
-    await Promise.all([
-      listAllAuthUsers(admin),
-      admin
-        .from("profiles")
-        .select(
-          "id, email, full_name, is_platform_admin, organization_id, organizations(name)"
-        ),
-      admin
-        .from("company_members")
-        .select("user_id, role, companies(name)"),
-    ]);
+  const [authUsers, profilesRes, membershipsRes] = await Promise.all([
+    listAllAuthUsers(admin),
+    admin
+      .from("profiles")
+      .select(
+        "id, email, full_name, is_platform_admin, organization_id, organizations(name)"
+      ),
+    admin.from("company_members").select("user_id, role, companies(name)"),
+  ]);
+
+  const profiles = profilesRes.data;
+  const memberships = membershipsRes.data;
+
+  const loadErrors = [
+    profilesRes.error && `profiles : ${profilesRes.error.message}`,
+    membershipsRes.error && `company_members : ${membershipsRes.error.message}`,
+  ].filter(Boolean) as string[];
 
   const profileById = new Map(
     (profiles ?? []).map((p) => [p.id as string, p])
@@ -112,6 +132,19 @@ export default async function AdminUsersPage() {
         </div>
         <RefreshButton />
       </div>
+
+      {loadErrors.length > 0 && (
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+          <p className="mb-1 font-medium">
+            Certaines données n&apos;ont pas pu être chargées :
+          </p>
+          <ul className="list-inside list-disc space-y-1 text-xs">
+            {loadErrors.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <UsersTable users={users} currentUserId={currentAdmin.id} />
     </div>
