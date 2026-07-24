@@ -19,6 +19,7 @@ create table profiles (
   email varchar(255) not null,
   full_name varchar(255),
   organization_id uuid references organizations(id),
+  is_platform_admin boolean default false,
   created_at timestamptz default now()
 );
 

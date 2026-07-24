@@ -51,11 +51,13 @@ export async function middleware(request: NextRequest) {
     "/bilan",
     "/ratios",
     "/abonnement",
+    "/admin",
   ];
   const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
     request.nextUrl.pathname.startsWith(p)
   );
   const isAbonnementRoute = request.nextUrl.pathname.startsWith("/abonnement");
+  const isAdminRoute = request.nextUrl.pathname.startsWith("/admin");
 
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -66,8 +68,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Paywall : essai/abonnement expiré → redirige vers /abonnement,
-  // sauf si l'utilisateur y est déjà (pour pouvoir payer).
-  if (user && isProtectedRoute && !isAbonnementRoute) {
+  // sauf si l'utilisateur y est déjà (pour pouvoir payer), ou s'il est
+  // sur /admin (un admin de plateforme n'est pas soumis au paywall).
+  if (user && isProtectedRoute && !isAbonnementRoute && !isAdminRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("organization_id")
