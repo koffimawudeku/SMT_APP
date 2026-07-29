@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OrgRow from "./org-row";
 import RefreshButton from "./refresh-button";
+import AddUserForm from "./add-user-form";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function AdminPage() {
               )
               .order("created_at", { ascending: false }),
             admin.auth.admin.listUsers(),
-            admin.from("companies").select("id, organization_id"),
+            admin.from("companies").select("id, name, organization_id"),
             admin
               .from("company_members")
               .select("user_id, companies(organization_id)"),
@@ -130,6 +131,10 @@ export default async function AdminPage() {
     };
   });
 
+  const companyOptions = (companies ?? [])
+    .map((c) => ({ id: c.id as string, name: (c.name as string) ?? "Sans nom" }))
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
+
   const totalUsers = authUsers?.users?.length ?? 0;
   const totalDossiers = companies?.length ?? 0;
   const activeCount = rows.filter(
@@ -149,6 +154,10 @@ export default async function AdminPage() {
           </p>
         </div>
         <RefreshButton />
+      </div>
+
+      <div className="mb-4">
+        <AddUserForm companies={companyOptions} />
       </div>
 
       {errors.length > 0 && (
