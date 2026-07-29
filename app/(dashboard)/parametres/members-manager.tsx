@@ -44,11 +44,15 @@ export default function MembersManager({
         return;
       }
       formRef.current?.reset();
+      const emailError = "emailError" in res ? res.emailError : undefined;
+      const base = res?.immediate
+        ? "Collaborateur ajouté au dossier."
+        : "Invitation envoyée par email avec un lien pour définir le mot de passe.";
       setMessage({
-        type: "ok",
-        text: res?.immediate
-          ? "Collaborateur ajouté au dossier."
-          : "Invitation enregistrée. L'accès sera actif à sa première connexion.",
+        type: emailError ? "err" : "ok",
+        text: emailError
+          ? `${base} Mais l'email n'a pas pu être envoyé : ${emailError}`
+          : base,
       });
       router.refresh();
     });

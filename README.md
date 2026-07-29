@@ -297,6 +297,25 @@ dès qu'**un** des dossiers accessibles à l'utilisateur est couvert par un
 abonnement actif : un collaborateur invité n'est donc plus bloqué par
 l'expiration de sa propre organisation.
 
+## Emails transactionnels (Resend)
+
+Les invitations de collaborateurs, la création de comptes depuis l'admin et
+la réinitialisation de mot de passe envoient un email via **Resend** (pas le
+SMTP de Supabase). Ajoutez dans les variables d'environnement (Vercel puis
+`.env.local` en local) :
+
+- `RESEND_API_KEY` — clé API depuis [resend.com](https://resend.com)
+- `RESEND_FROM` — expéditeur, ex. `SMT <no-reply@votre-domaine.com>`
+
+⚠️ Pour envoyer à **n'importe quel** destinataire, un **domaine vérifié**
+dans Resend est obligatoire. Sans domaine vérifié, l'adresse de test
+`onboarding@resend.dev` ne délivre qu'à l'adresse du titulaire du compte
+Resend — pratique pour tester, insuffisant en production.
+
+Les liens des emails pointent vers `NEXT_PUBLIC_APP_URL/definir-mot-de-passe`.
+Si `RESEND_API_KEY` est absente, la création de compte réussit quand même
+mais l'email n'est pas envoyé (un avertissement est affiché à l'admin).
+
 ## Pages disponibles
 
 - `/signup` — inscription libre ; crée automatiquement une entreprise dédiée et isolée pour chaque nouveau compte

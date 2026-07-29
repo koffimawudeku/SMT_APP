@@ -33,14 +33,17 @@ export default function AddUserForm({ companies }: { companies: Company[] }) {
         return;
       }
 
+      const warning = "warning" in res ? res.warning : "";
+      const base =
+        mode === "inscription"
+          ? "Utilisateur créé. Un email d'invitation lui a été envoyé pour définir son mot de passe."
+          : "immediate" in res && res.immediate
+            ? "Collaborateur rattaché au dossier."
+            : "Collaborateur créé et rattaché. Un email d'invitation lui a été envoyé.";
+
       setMessage({
-        type: "ok",
-        text:
-          mode === "inscription"
-            ? "Utilisateur créé. Un email d'invitation lui a été envoyé pour définir son mot de passe."
-            : "immediate" in res && res.immediate
-              ? "Collaborateur rattaché au dossier."
-              : "Collaborateur créé et rattaché. Un email d'invitation lui a été envoyé.",
+        type: warning ? "err" : "ok",
+        text: warning ? base + warning : base,
       });
       router.refresh();
     });

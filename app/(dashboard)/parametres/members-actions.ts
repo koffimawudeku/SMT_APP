@@ -4,6 +4,10 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  inviteNewUserByEmail,
+  notifyCollaboratorAdded,
+} from "@/lib/onboarding-email";
 
 const INVITABLE_ROLES = ["comptable", "consultant", "viewer"] as const;
 
@@ -54,9 +58,16 @@ export async function inviteCollaborator(companyId: string, formData: FormData) 
   const { email, role } = parsed.data;
   const admin = createAdminClient();
 
+  const { data: company } = await admin
+    .from("companies")
+    .select("name")
+    .eq("id", companyId)
+    .maybeSingle();
+  const dossierName = (company?.name as string) ?? "votre dossier";
+
   // Si un compte existe déjà avec cet email, on rattache directement le
-  // collaborateur au dossier ; sinon, on enregistre une invitation en
-  // attente qui sera consommée à sa première connexion.
+  // collaborateur au dossier (+ email de notification) ; sinon, on crée le
+  // compte et on lui envoie un email d'invitation avec lien de mot de passe.
   const { data: existingProfile } = await admin
     .from("profiles")
     .select("id")
@@ -89,10 +100,17 @@ export async function inviteCollaborator(companyId: string, formData: FormData) 
       return { error: "Erreur lors de l'ajout du collaborateur." };
     }
 
+    const { error: emailError } = await notifyCollaboratorAdded(
+      email,
+      dossierName
+    );
+
     revalidatePath("/parametres");
-    return { success: true, immediate: true };
+    return { success: true, immediate: true, emailError };
   }
 
+  // Nouveau compte : l'invitation doit exister AVANT la création pour que le
+  // trigger d'inscription ne crée pas d'organisation perso.
   const { error } = await admin.from("company_invitations").upsert(
     {
       company_id: companyId,
@@ -112,8 +130,32 @@ export async function inviteCollaborator(companyId: string, formData: FormData) 
     };
   }
 
+  const { userId, error: createError, emailError } = await inviteNewUserByEmail(
+    admin,
+    {
+      email,
+      heading: "Vous êtes invité(e) sur SMT",
+      intro: `Vous avez été ajouté(e) au dossier « ${dossierName} » sur SMT.`,
+    }
+  );
+
+  if (createError || !userId) {
+    return { error: `Invitation impossible : ${createError}` };
+  }
+
+  await admin.from("company_members").insert({
+    company_id: companyId,
+    user_id: userId,
+    role,
+  });
+  await admin
+    .from("company_invitations")
+    .update({ status: "accepted", accepted_at: new Date().toISOString() })
+    .eq("company_id", companyId)
+    .eq("email", email);
+
   revalidatePath("/parametres");
-  return { success: true, immediate: false };
+  return { success: true, immediate: false, emailError };
 }
 
 export async function removeMember(companyId: string, memberUserId: string) {

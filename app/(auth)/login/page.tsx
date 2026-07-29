@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { requestPasswordReset } from "./actions";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +13,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [isResetting, startReset] = useTransition();
+
+  function handleReset(formData: FormData) {
+    setResetMessage(null);
+    startReset(async () => {
+      const res = await requestPasswordReset(formData);
+      setResetMessage(res?.message ?? res?.error ?? null);
+    });
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -76,6 +88,56 @@ export default function LoginPage() {
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => {
+              setShowReset((v) => !v);
+              setResetMessage(null);
+            }}
+            className="text-xs text-gray-500 hover:text-gray-700"
+          >
+            Mot de passe oublié ?
+          </button>
+        </div>
+
+        {showReset && (
+          <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+            <p className="mb-2 text-xs text-gray-600">
+              Entrez votre email pour recevoir un lien de réinitialisation.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                name="email"
+                required
+                placeholder="nom@entreprise.com"
+                defaultValue={email}
+                className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                id="reset-email"
+              />
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={() => {
+                  const input = document.getElementById(
+                    "reset-email"
+                  ) as HTMLInputElement | null;
+                  const fd = new FormData();
+                  fd.set("email", input?.value ?? "");
+                  handleReset(fd);
+                }}
+                className="rounded-md bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              >
+                {isResetting ? "Envoi…" : "Envoyer"}
+              </button>
+            </div>
+            {resetMessage && (
+              <p className="mt-2 text-xs text-green-700">{resetMessage}</p>
+            )}
+          </div>
+        )}
 
         <p className="text-center text-sm text-gray-500">
           Pas encore de compte ?{" "}
