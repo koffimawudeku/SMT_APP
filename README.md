@@ -222,6 +222,81 @@ l'invitation reste `pending` et est consommée automatiquement à sa
 première connexion. Sans cette table, le formulaire d'invitation renvoie
 une erreur mais le reste de l'application continue de fonctionner.
 
+### Éviter le doublon d'organisation à l'inscription sur invitation
+
+Par défaut, `handle_new_user` crée une organisation/dossier perso pour
+**chaque** nouveau compte. Un collaborateur invité qui s'inscrit se
+retrouverait donc avec un dossier perso inutile (et un essai parasite).
+Remplacez la fonction pour qu'elle saute cette création quand une
+invitation en attente existe déjà pour l'email :
+
+```sql
+create or replace function public.handle_new_user()
+returns trigger as $$
+declare
+  new_org_id uuid;
+  new_company_id uuid;
+  company_label text;
+  has_pending_invite boolean;
+begin
+  insert into public.profiles (id, email, full_name)
+  values (new.id, new.email, new.raw_user_meta_data->>'full_name');
+
+  select exists (
+    select 1 from public.company_invitations
+    where lower(email) = lower(new.email) and status = 'pending'
+  ) into has_pending_invite;
+
+  -- Collaborateur invité : pas d'org perso, il sera rattaché au dossier
+  -- partagé à sa première connexion.
+  if has_pending_invite then
+    return new;
+  end if;
+
+  company_label := coalesce(new.raw_user_meta_data->>'company_name', 'Mon Entreprise');
+
+  insert into organizations (name, type)
+  values (company_label, 'individuel')
+  returning id into new_org_id;
+
+  update profiles set organization_id = new_org_id where id = new.id;
+
+  insert into companies (organization_id, name)
+  values (new_org_id, company_label)
+  returning id into new_company_id;
+
+  insert into company_members (company_id, user_id, role)
+  values (new_company_id, new.id, 'owner');
+
+  insert into subscriptions (organization_id, plan, status, current_period_end)
+  values (new_org_id, 'trial', 'trialing', now() + interval '14 days');
+
+  insert into categories (company_id, name, type) values
+    (new_company_id, 'Ventes', 'recette'),
+    (new_company_id, 'Autres Recettes', 'recette'),
+    (new_company_id, 'Matériel/Mobilier', 'depense'),
+    (new_company_id, 'Achat Marchandises', 'depense'),
+    (new_company_id, 'Achat Matières/Fourn.', 'depense'),
+    (new_company_id, 'Loyer', 'depense'),
+    (new_company_id, 'Salaires', 'depense'),
+    (new_company_id, 'Eau/Électricité', 'depense'),
+    (new_company_id, 'Impôts/Taxes', 'depense'),
+    (new_company_id, 'Autres Dépenses', 'depense');
+
+  return new;
+end;
+$$ language plpgsql security definer;
+```
+
+> ⚠️ La table `company_invitations` (migration ci-dessus) doit exister
+> **avant** de remplacer la fonction, sinon l'inscription échouera. Ce
+> changement affecte uniquement les **futurs** comptes.
+
+Côté application, le paywall (`middleware.ts`) autorise désormais l'accès
+dès qu'**un** des dossiers accessibles à l'utilisateur est couvert par un
+abonnement actif : un collaborateur invité n'est donc plus bloqué par
+l'expiration de sa propre organisation.
+
 ## Pages disponibles
 
 - `/signup` — inscription libre ; crée automatiquement une entreprise dédiée et isolée pour chaque nouveau compte

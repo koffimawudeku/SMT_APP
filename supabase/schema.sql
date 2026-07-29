@@ -178,17 +178,33 @@ group by stock_item_id;
 -- Fonction utilitaire : à l'inscription, crée le profil ET provisionne
 -- automatiquement une organisation/entreprise dédiée à ce nouvel
 -- utilisateur (owner), totalement isolée des autres comptes existants.
+--
+-- Exception : si une invitation en attente existe déjà pour cet email
+-- (collaborateur invité en mode cabinet), on NE crée PAS d'organisation ni
+-- de dossier perso. L'utilisateur sera rattaché au dossier partagé à sa
+-- première connexion (acceptPendingInvitations), et n'aura donc pas de
+-- doublon d'organisation ni d'essai parasite.
 create function public.handle_new_user()
 returns trigger as $$
 declare
   new_org_id uuid;
   new_company_id uuid;
   company_label text;
+  has_pending_invite boolean;
 begin
-  company_label := coalesce(new.raw_user_meta_data->>'company_name', 'Mon Entreprise');
-
   insert into public.profiles (id, email, full_name)
   values (new.id, new.email, new.raw_user_meta_data->>'full_name');
+
+  select exists (
+    select 1 from public.company_invitations
+    where lower(email) = lower(new.email) and status = 'pending'
+  ) into has_pending_invite;
+
+  if has_pending_invite then
+    return new;
+  end if;
+
+  company_label := coalesce(new.raw_user_meta_data->>'company_name', 'Mon Entreprise');
 
   insert into organizations (name, type)
   values (company_label, 'individuel')
