@@ -2,13 +2,16 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Trash2, UserPlus, Clock } from "lucide-react";
+import { Mail, Trash2, UserPlus, Clock, KeyRound, Copy } from "lucide-react";
 import {
   inviteCollaborator,
+  createCollaboratorWithPassword,
   removeMember,
   revokeInvitation,
 } from "./members-actions";
 import type { CompanyMember, PendingInvitation } from "@/lib/members";
+
+type Method = "email" | "password";
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Propriétaire",
@@ -29,23 +32,53 @@ export default function MembersManager({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const [method, setMethod] = useState<Method>("email");
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(
     null
   );
+  const [credential, setCredential] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
   function onInvite(formData: FormData) {
     setMessage(null);
+    setCredential(null);
+    setCopied(false);
     startTransition(async () => {
-      const res = await inviteCollaborator(companyId, formData);
+      const res =
+        method === "password"
+          ? await createCollaboratorWithPassword(companyId, formData)
+          : await inviteCollaborator(companyId, formData);
+
       if (res?.error) {
         setMessage({ type: "err", text: res.error });
         return;
       }
       formRef.current?.reset();
+
+      if (method === "password") {
+        if ("password" in res && res.password) {
+          setCredential({ email: res.email as string, password: res.password });
+          setMessage(null);
+        } else {
+          setMessage({
+            type: "ok",
+            text:
+              ("message" in res && res.message) ||
+              "Collaborateur rattaché au dossier.",
+          });
+        }
+        router.refresh();
+        return;
+      }
+
       const emailError = "emailError" in res ? res.emailError : undefined;
-      const base = res?.immediate
+      const immediate = "immediate" in res ? res.immediate : false;
+      const base = immediate
         ? "Collaborateur ajouté au dossier."
         : "Invitation envoyée par email avec un lien pour définir le mot de passe.";
       setMessage({
@@ -157,41 +190,128 @@ export default function MembersManager({
       )}
 
       {canManage ? (
-        <form ref={formRef} action={onInvite} className="border-t border-gray-100 pt-4">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Mail className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="email@exemple.com"
-                className="w-full rounded-md border border-gray-300 py-1.5 pl-8 pr-2 text-sm focus:border-primary focus:outline-none"
-              />
-            </div>
-            <select
-              name="role"
-              defaultValue="comptable"
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
-            >
-              <option value="comptable">Comptable</option>
-              <option value="consultant">Consultant</option>
-              <option value="viewer">Lecture seule</option>
-            </select>
+        <div className="border-t border-gray-100 pt-4">
+          <div className="mb-3 inline-flex rounded-md border border-gray-200 p-0.5 text-xs">
             <button
-              type="submit"
-              disabled={isPending}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+              type="button"
+              onClick={() => {
+                setMethod("email");
+                setMessage(null);
+                setCredential(null);
+              }}
+              className={`inline-flex items-center gap-1 rounded px-2.5 py-1 ${
+                method === "email"
+                  ? "bg-primary/10 font-medium text-primary"
+                  : "text-gray-600"
+              }`}
             >
-              <UserPlus className="h-4 w-4" />
-              Inviter
+              <Mail className="h-3.5 w-3.5" />
+              Invitation par email
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMethod("password");
+                setMessage(null);
+                setCredential(null);
+              }}
+              className={`inline-flex items-center gap-1 rounded px-2.5 py-1 ${
+                method === "password"
+                  ? "bg-primary/10 font-medium text-primary"
+                  : "text-gray-600"
+              }`}
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Mot de passe direct
             </button>
           </div>
-        </form>
+
+          <form ref={formRef} action={onInvite}>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Mail className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="email@exemple.com"
+                  className="w-full rounded-md border border-gray-300 py-1.5 pl-8 pr-2 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+              <select
+                name="role"
+                defaultValue="comptable"
+                className="rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary focus:outline-none"
+              >
+                <option value="comptable">Comptable</option>
+                <option value="consultant">Consultant</option>
+                <option value="viewer">Lecture seule</option>
+              </select>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {method === "password" ? (
+                  <KeyRound className="h-4 w-4" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                {method === "password" ? "Créer l'accès" : "Inviter"}
+              </button>
+            </div>
+            {method === "password" && (
+              <input
+                name="fullName"
+                type="text"
+                placeholder="Nom complet (optionnel)"
+                className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-primary focus:outline-none sm:max-w-xs"
+              />
+            )}
+            <p className="mt-2 text-xs text-gray-400">
+              {method === "password"
+                ? "Un mot de passe temporaire est généré et affiché une seule fois : communiquez-le vous-même au collaborateur."
+                : "Un email d'invitation est envoyé avec un lien pour définir le mot de passe."}
+            </p>
+          </form>
+        </div>
       ) : (
         <p className="border-t border-gray-100 pt-4 text-xs text-gray-500">
           Seul le propriétaire du dossier peut inviter des collaborateurs.
         </p>
+      )}
+
+      {credential && (
+        <div className="mt-3 rounded-md border border-green-300 bg-green-50 p-3">
+          <p className="mb-2 text-xs font-medium text-green-800">
+            Accès créé. Notez ces identifiants — le mot de passe ne sera plus
+            affiché.
+          </p>
+          <dl className="space-y-1 text-xs text-gray-700">
+            <div className="flex gap-2">
+              <dt className="w-20 text-gray-500">Email</dt>
+              <dd className="font-mono">{credential.email}</dd>
+            </div>
+            <div className="flex items-center gap-2">
+              <dt className="w-20 text-gray-500">Mot de passe</dt>
+              <dd className="font-mono font-medium">{credential.password}</dd>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard
+                    ?.writeText(
+                      `Email : ${credential.email}\nMot de passe : ${credential.password}`
+                    )
+                    .then(() => setCopied(true));
+                }}
+                className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-gray-600 hover:bg-gray-50"
+              >
+                <Copy className="h-3 w-3" />
+                {copied ? "Copié" : "Copier"}
+              </button>
+            </div>
+          </dl>
+        </div>
       )}
 
       {message && (
