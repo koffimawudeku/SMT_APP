@@ -6,7 +6,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { createOrder, updateOrder, deleteOrder } from "./actions";
 import { ORDER_STATUSES, STATUS_LABELS } from "./status";
 
-type Item = { description: string; quantity: string; unitPrice: string };
+type Item = {
+  description: string;
+  quantity: string;
+  unitPrice: string;
+  stockItemId: string;
+};
+
+export type StockOption = { id: string; name: string; unitCost: number | null };
 
 export type OrderInitial = {
   id: string;
@@ -14,8 +21,20 @@ export type OrderInitial = {
   orderDate: string;
   deliveryDate: string | null;
   status: string;
+  paymentMethod: string;
   notes: string | null;
-  items: { description: string; quantity: number; unitPrice: number }[];
+  items: {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    stockItemId: string | null;
+  }[];
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+  caisse: "Caisse",
+  banque: "Banque",
+  mobile_money: "Mobile Money",
 };
 
 const fmt = (n: number) =>
@@ -23,7 +42,13 @@ const fmt = (n: number) =>
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function OrderForm({ initial }: { initial?: OrderInitial }) {
+export default function OrderForm({
+  initial,
+  stockItems = [],
+}: {
+  initial?: OrderInitial;
+  stockItems?: StockOption[];
+}) {
   const router = useRouter();
   const isEdit = Boolean(initial);
   const [isPending, startTransition] = useTransition();
@@ -33,14 +58,38 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
   const [orderDate, setOrderDate] = useState(initial?.orderDate ?? today());
   const [deliveryDate, setDeliveryDate] = useState(initial?.deliveryDate ?? "");
   const [status, setStatus] = useState(initial?.status ?? "devis");
+  const [paymentMethod, setPaymentMethod] = useState(
+    initial?.paymentMethod ?? "caisse"
+  );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [items, setItems] = useState<Item[]>(
     initial?.items.map((i) => ({
       description: i.description,
       quantity: String(i.quantity),
       unitPrice: String(i.unitPrice),
-    })) ?? [{ description: "", quantity: "1", unitPrice: "" }]
+      stockItemId: i.stockItemId ?? "",
+    })) ?? [{ description: "", quantity: "1", unitPrice: "", stockItemId: "" }]
   );
+
+  function onSelectArticle(index: number, stockItemId: string) {
+    const article = stockItems.find((s) => s.id === stockItemId);
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== index) return it;
+        return {
+          ...it,
+          stockItemId,
+          // Pré-remplit description et prix depuis l'article (sans écraser un
+          // prix déjà saisi manuellement).
+          description: article ? article.name : it.description,
+          unitPrice:
+            article && article.unitCost != null && !it.unitPrice
+              ? String(article.unitCost)
+              : it.unitPrice,
+        };
+      })
+    );
+  }
 
   const total = items.reduce(
     (sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0),
@@ -54,7 +103,10 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
   }
 
   function addItem() {
-    setItems((prev) => [...prev, { description: "", quantity: "1", unitPrice: "" }]);
+    setItems((prev) => [
+      ...prev,
+      { description: "", quantity: "1", unitPrice: "", stockItemId: "" },
+    ]);
   }
 
   function removeItem(index: number) {
@@ -70,11 +122,13 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
       orderDate,
       deliveryDate: deliveryDate || null,
       status: status as (typeof ORDER_STATUSES)[number],
+      paymentMethod: paymentMethod as "caisse" | "banque" | "mobile_money",
       notes: notes || null,
       items: items.map((i) => ({
         description: i.description,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
+        stockItemId: i.stockItemId || null,
       })),
     };
 
@@ -154,6 +208,25 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
             ))}
           </select>
         </div>
+        <div>
+          <label className="mb-1 block text-sm text-gray-600">
+            Mode de règlement
+          </label>
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none"
+          >
+            {Object.entries(PAYMENT_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">
+            Utilisé pour la recette générée au passage en « Payée ».
+          </p>
+        </div>
       </div>
 
       <div>
@@ -173,6 +246,9 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs text-gray-500">
               <tr>
+                {stockItems.length > 0 && (
+                  <th className="px-3 py-2">Article (stock)</th>
+                )}
                 <th className="px-3 py-2">Description</th>
                 <th className="px-3 py-2 text-right">Quantité</th>
                 <th className="px-3 py-2 text-right">Prix unitaire</th>
@@ -186,6 +262,22 @@ export default function OrderForm({ initial }: { initial?: OrderInitial }) {
                   (Number(it.quantity) || 0) * (Number(it.unitPrice) || 0);
                 return (
                   <tr key={i} className="border-t border-gray-100">
+                    {stockItems.length > 0 && (
+                      <td className="px-3 py-2">
+                        <select
+                          value={it.stockItemId}
+                          onChange={(e) => onSelectArticle(i, e.target.value)}
+                          className="w-40 rounded border border-gray-300 px-2 py-1 focus:border-primary focus:outline-none"
+                        >
+                          <option value="">— Libre —</option>
+                          {stockItems.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td className="px-3 py-2">
                       <input
                         value={it.description}

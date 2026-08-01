@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
-import OrderForm, { type OrderInitial } from "../order-form";
+import OrderForm, { type OrderInitial, type StockOption } from "../order-form";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,9 @@ export default async function CommandeDetailPage({
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, company_id, client_name, order_date, delivery_date, status, notes")
+    .select(
+      "id, company_id, client_name, order_date, delivery_date, status, payment_method, notes"
+    )
     .eq("id", params.id)
     .eq("company_id", companyId)
     .maybeSingle();
@@ -34,10 +36,23 @@ export default async function CommandeDetailPage({
     notFound();
   }
 
-  const { data: items } = await supabase
-    .from("order_items")
-    .select("description, quantity, unit_price")
-    .eq("order_id", order.id);
+  const [{ data: items }, { data: stock }] = await Promise.all([
+    supabase
+      .from("order_items")
+      .select("description, quantity, unit_price, stock_item_id")
+      .eq("order_id", order.id),
+    supabase
+      .from("stock_items")
+      .select("id, name, unit_cost")
+      .eq("company_id", companyId)
+      .order("name"),
+  ]);
+
+  const stockItems: StockOption[] = (stock ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    unitCost: s.unit_cost,
+  }));
 
   const initial: OrderInitial = {
     id: order.id,
@@ -45,11 +60,13 @@ export default async function CommandeDetailPage({
     orderDate: order.order_date,
     deliveryDate: order.delivery_date,
     status: order.status,
+    paymentMethod: order.payment_method ?? "caisse",
     notes: order.notes,
     items: (items ?? []).map((i) => ({
       description: i.description,
       quantity: i.quantity,
       unitPrice: i.unit_price,
+      stockItemId: i.stock_item_id,
     })),
   };
 
@@ -65,7 +82,7 @@ export default async function CommandeDetailPage({
       <h1 className="mb-6 text-xl font-medium">
         Commande — {order.client_name}
       </h1>
-      <OrderForm initial={initial} />
+      <OrderForm initial={initial} stockItems={stockItems} />
     </div>
   );
 }

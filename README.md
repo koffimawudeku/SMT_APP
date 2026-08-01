@@ -348,6 +348,30 @@ create policy "order_items_write" on order_items
 Sans ces tables, la page `/commandes` affiche un message invitant à jouer la
 migration ; le reste de l'application continue de fonctionner.
 
+### Intégration des commandes (stock, créances, trésorerie)
+
+Pour lier les commandes au stock, aux créances et à la trésorerie, ajoutez
+ces colonnes (une seule fois) :
+
+```sql
+alter table order_items add column if not exists stock_item_id uuid references stock_items(id);
+alter table orders add column if not exists payment_method varchar(30) default 'caisse'
+  check (payment_method in ('caisse', 'banque', 'mobile_money'));
+alter table orders add column if not exists stock_movement_done boolean default false;
+alter table orders add column if not exists receivable_id uuid references debts_receivables(id);
+alter table orders add column if not exists transaction_id uuid references transactions(id);
+```
+
+Effets automatiques déclenchés par le changement de statut d'une commande :
+- **Livrée** → sortie de stock pour chaque ligne liée à un article, et
+  création d'une **créance** du montant total (si non déjà payée) ;
+- **Payée** → **recette** dans le Journal (Caisse/Banque/Mobile Money selon
+  le mode de règlement), et la créance liée est soldée.
+
+Chaque effet est **idempotent** (posé une seule fois) grâce aux colonnes de
+suivi ci-dessus. L'annulation d'une commande déjà livrée/payée ne fait pas de
+contre-passation automatique (à ajuster manuellement).
+
 ## Emails transactionnels (Resend)
 
 Les invitations de collaborateurs, la création de comptes depuis l'admin et

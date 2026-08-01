@@ -1,8 +1,29 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import OrderForm from "../order-form";
+import { createClient } from "@/lib/supabase/server";
+import { getActiveCompany } from "@/lib/supabase/get-active-company";
+import OrderForm, { type StockOption } from "../order-form";
 
-export default function NouvelleCommandePage() {
+export const dynamic = "force-dynamic";
+
+export default async function NouvelleCommandePage() {
+  const { companyId } = await getActiveCompany();
+  const supabase = createClient();
+
+  const { data: stock } = companyId
+    ? await supabase
+        .from("stock_items")
+        .select("id, name, unit_cost")
+        .eq("company_id", companyId)
+        .order("name")
+    : { data: null };
+
+  const stockItems: StockOption[] = (stock ?? []).map((s) => ({
+    id: s.id,
+    name: s.name,
+    unitCost: s.unit_cost,
+  }));
+
   return (
     <div className="mx-auto max-w-3xl p-6">
       <Link
@@ -13,7 +34,7 @@ export default function NouvelleCommandePage() {
         Retour aux commandes
       </Link>
       <h1 className="mb-6 text-xl font-medium">Nouvelle commande</h1>
-      <OrderForm />
+      <OrderForm stockItems={stockItems} />
     </div>
   );
 }

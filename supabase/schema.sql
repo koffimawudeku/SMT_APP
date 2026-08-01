@@ -156,15 +156,24 @@ create table orders (
   delivery_date date,
   status varchar(20) not null default 'devis'
     check (status in ('devis', 'confirmee', 'livree', 'payee', 'annulee')),
+  payment_method varchar(30) default 'caisse'
+    check (payment_method in ('caisse', 'banque', 'mobile_money')),
   notes text,
+  -- Suivi des effets automatiques (stock, créance, trésorerie) pour éviter
+  -- tout double comptage lors des changements de statut.
+  stock_movement_done boolean default false,
+  receivable_id uuid references debts_receivables(id),
+  transaction_id uuid references transactions(id),
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
 
--- Lignes d'une commande (articles, quantités, prix unitaires)
+-- Lignes d'une commande (articles, quantités, prix unitaires). Une ligne
+-- peut référencer un article du stock (décrémenté à la livraison).
 create table order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid references orders(id) on delete cascade not null,
+  stock_item_id uuid references stock_items(id),
   description varchar(255) not null,
   quantity decimal(10,2) not null default 1 check (quantity > 0),
   unit_price decimal(15,2) not null default 0 check (unit_price >= 0)
