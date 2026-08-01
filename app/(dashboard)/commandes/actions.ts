@@ -344,6 +344,32 @@ async function applyOrderEffects(orderId: string) {
     }
   }
 
+  // 4) Resynchronisation à l'édition : si les écritures existaient déjà
+  //    AVANT cet appel (montants stockés dans l'objet `order` chargé plus
+  //    haut), on les réaligne sur le total courant. Les blocs 2 et 3
+  //    ci-dessus ne se déclenchent qu'à la première pose ; ce bloc couvre
+  //    les modifications ultérieures de quantités/prix.
+  if (order.transaction_id) {
+    await admin
+      .from("transactions")
+      .update({
+        amount: total,
+        payment_method: order.payment_method ?? "caisse",
+      })
+      .eq("id", order.transaction_id);
+  }
+  if (order.receivable_id) {
+    const paid = order.status === "payee";
+    await admin
+      .from("debts_receivables")
+      .update({
+        amount: total,
+        amount_paid: paid ? total : 0,
+        status: paid ? "solde" : "en_cours",
+      })
+      .eq("id", order.receivable_id);
+  }
+
   revalidatePath("/commandes");
   revalidatePath("/journal");
   revalidatePath("/dettes-creances");

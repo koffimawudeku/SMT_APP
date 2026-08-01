@@ -374,6 +374,11 @@ stock (mouvement « entrée »), suppression de la recette et de la créance
 liées, puis réinitialisation des marqueurs (une ré-activation ultérieure
 repostera proprement les effets).
 
+Éditer une commande déjà postée **resynchronise le montant** de la recette et
+de la créance liées sur le nouveau total. En revanche, les **quantités de
+stock** déjà sorties ne sont pas réajustées à l'édition (utilisez l'annulation
+puis une nouvelle saisie pour les corriger).
+
 ## Emails transactionnels (Resend)
 
 Les invitations de collaborateurs, la création de comptes depuis l'admin et
