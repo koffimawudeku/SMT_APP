@@ -179,6 +179,13 @@ create table order_items (
   unit_price decimal(15,2) not null default 0 check (unit_price >= 0)
 );
 
+-- Lien des mouvements de stock à la commande qui les a générés (défini ici
+-- car `orders` est créée après `stock_movements`). Permet de resynchroniser
+-- ou restaurer le stock d'une commande : ses mouvements sont supprimés puis
+-- reposés à chaque enregistrement, et effacés par cascade à sa suppression.
+alter table stock_movements
+  add column order_id uuid references orders(id) on delete cascade;
+
 -- Vue : Compte de résultat simplifié, agrégé par mois
 create view v_compte_resultat as
 select

@@ -153,11 +153,34 @@ export async function updateOrder(orderId: string, payload: OrderPayload) {
 
 export async function deleteOrder(orderId: string) {
   const supabase = createClient();
+
+  // Nettoie d'abord les écritures générées automatiquement : la recette et la
+  // créance ne sont pas liées par clé étrangère à la commande, on les
+  // supprime donc explicitement. Les mouvements de stock, eux, sont effacés
+  // par cascade (order_id on delete cascade) — ce qui restaure le stock.
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders")
+    .select("transaction_id, receivable_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (order?.transaction_id) {
+    await admin.from("transactions").delete().eq("id", order.transaction_id);
+  }
+  if (order?.receivable_id) {
+    await admin.from("debts_receivables").delete().eq("id", order.receivable_id);
+  }
+
   const { error } = await supabase.from("orders").delete().eq("id", orderId);
   if (error) {
     return { error: "Erreur lors de la suppression de la commande." };
   }
   revalidatePath("/commandes");
+  revalidatePath("/journal");
+  revalidatePath("/dettes-creances");
+  revalidatePath("/stocks");
   return { success: true };
 }
 
@@ -202,29 +225,48 @@ async function applyOrderEffects(orderId: string) {
   );
   const delivered = order.status === "livree" || order.status === "payee";
 
-  // 0) Contre-passation : commande annulée après avoir été livrée/payée.
-  //    On réinjecte le stock, on supprime la recette et la créance, puis on
-  //    réinitialise les marqueurs — de sorte qu'une éventuelle ré-activation
-  //    ultérieure reposte proprement les effets.
-  if (order.status === "annulee") {
-    if (order.stock_movement_done) {
+  // 1) Stock : on reconstruit intégralement les mouvements de la commande à
+  //    chaque enregistrement. Les mouvements sont tracés par `order_id`, donc
+  //    on supprime ceux de la commande puis on les repose selon l'état
+  //    courant. Cela couvre d'un coup la première pose, la RESYNCHRONISATION
+  //    à l'édition (quantités/lignes modifiées) et l'annulation (aucun
+  //    mouvement reposé → stock restauré).
+  //    Si la colonne order_id n'existe pas encore, la suppression échoue et
+  //    on ignore silencieusement le stock (migration non jouée).
+  const delResult = await admin
+    .from("stock_movements")
+    .delete()
+    .eq("order_id", orderId);
+
+  if (!delResult.error) {
+    if (delivered) {
       const stockLines = lines.filter((l) => l.stock_item_id);
       if (stockLines.length > 0) {
         await admin.from("stock_movements").insert(
           stockLines.map((l) => ({
             company_id: order.company_id,
+            order_id: orderId,
             stock_item_id: l.stock_item_id,
-            type: "entree",
+            type: "sortie",
             quantity: l.quantity,
             unit_cost: null,
-            movement_date: new Date().toISOString().slice(0, 10),
-            description: `Annulation commande ${order.client_name}`,
+            movement_date: order.delivery_date ?? order.order_date,
+            description: `Commande ${order.client_name}`,
             created_by: order.created_by,
           }))
         );
       }
     }
+    await admin
+      .from("orders")
+      .update({ stock_movement_done: delivered })
+      .eq("id", orderId);
+  }
 
+  // 0) Annulation : le stock a déjà été restauré ci-dessus (aucune sortie
+  //    reposée). Il reste à supprimer la recette et la créance générées, et à
+  //    réinitialiser les marqueurs financiers.
+  if (order.status === "annulee") {
     if (order.transaction_id) {
       await admin.from("transactions").delete().eq("id", order.transaction_id);
     }
@@ -237,11 +279,7 @@ async function applyOrderEffects(orderId: string) {
 
     await admin
       .from("orders")
-      .update({
-        stock_movement_done: false,
-        transaction_id: null,
-        receivable_id: null,
-      })
+      .update({ transaction_id: null, receivable_id: null })
       .eq("id", orderId);
 
     revalidatePath("/commandes");
@@ -249,29 +287,6 @@ async function applyOrderEffects(orderId: string) {
     revalidatePath("/dettes-creances");
     revalidatePath("/stocks");
     return;
-  }
-
-  // 1) Sortie de stock (à la livraison ou au paiement direct)
-  if (delivered && !order.stock_movement_done) {
-    const stockLines = lines.filter((l) => l.stock_item_id);
-    if (stockLines.length > 0) {
-      await admin.from("stock_movements").insert(
-        stockLines.map((l) => ({
-          company_id: order.company_id,
-          stock_item_id: l.stock_item_id,
-          type: "sortie",
-          quantity: l.quantity,
-          unit_cost: null,
-          movement_date: order.delivery_date ?? order.order_date,
-          description: `Commande ${order.client_name}`,
-          created_by: order.created_by,
-        }))
-      );
-    }
-    await admin
-      .from("orders")
-      .update({ stock_movement_done: true })
-      .eq("id", orderId);
   }
 
   // 2) Créance à la livraison (tant que la commande n'est pas payée)
@@ -373,4 +388,5 @@ async function applyOrderEffects(orderId: string) {
   revalidatePath("/commandes");
   revalidatePath("/journal");
   revalidatePath("/dettes-creances");
+  revalidatePath("/stocks");
 }

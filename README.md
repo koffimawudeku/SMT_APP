@@ -360,6 +360,7 @@ alter table orders add column if not exists payment_method varchar(30) default '
 alter table orders add column if not exists stock_movement_done boolean default false;
 alter table orders add column if not exists receivable_id uuid references debts_receivables(id);
 alter table orders add column if not exists transaction_id uuid references transactions(id);
+alter table stock_movements add column if not exists order_id uuid references orders(id) on delete cascade;
 ```
 
 Effets automatiques déclenchés par le changement de statut d'une commande :
@@ -374,10 +375,11 @@ stock (mouvement « entrée »), suppression de la recette et de la créance
 liées, puis réinitialisation des marqueurs (une ré-activation ultérieure
 repostera proprement les effets).
 
-Éditer une commande déjà postée **resynchronise le montant** de la recette et
-de la créance liées sur le nouveau total. En revanche, les **quantités de
-stock** déjà sorties ne sont pas réajustées à l'édition (utilisez l'annulation
-puis une nouvelle saisie pour les corriger).
+Éditer une commande déjà postée **resynchronise** la recette, la créance **et
+le stock** : les mouvements de stock sont tracés par `order_id`, supprimés
+puis reposés à chaque enregistrement selon l'état courant. Supprimer une
+commande efface aussi ses écritures (recette, créance) et restaure le stock
+(mouvements effacés par cascade).
 
 ## Emails transactionnels (Resend)
 
