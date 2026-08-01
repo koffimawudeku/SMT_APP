@@ -202,6 +202,55 @@ async function applyOrderEffects(orderId: string) {
   );
   const delivered = order.status === "livree" || order.status === "payee";
 
+  // 0) Contre-passation : commande annulée après avoir été livrée/payée.
+  //    On réinjecte le stock, on supprime la recette et la créance, puis on
+  //    réinitialise les marqueurs — de sorte qu'une éventuelle ré-activation
+  //    ultérieure reposte proprement les effets.
+  if (order.status === "annulee") {
+    if (order.stock_movement_done) {
+      const stockLines = lines.filter((l) => l.stock_item_id);
+      if (stockLines.length > 0) {
+        await admin.from("stock_movements").insert(
+          stockLines.map((l) => ({
+            company_id: order.company_id,
+            stock_item_id: l.stock_item_id,
+            type: "entree",
+            quantity: l.quantity,
+            unit_cost: null,
+            movement_date: new Date().toISOString().slice(0, 10),
+            description: `Annulation commande ${order.client_name}`,
+            created_by: order.created_by,
+          }))
+        );
+      }
+    }
+
+    if (order.transaction_id) {
+      await admin.from("transactions").delete().eq("id", order.transaction_id);
+    }
+    if (order.receivable_id) {
+      await admin
+        .from("debts_receivables")
+        .delete()
+        .eq("id", order.receivable_id);
+    }
+
+    await admin
+      .from("orders")
+      .update({
+        stock_movement_done: false,
+        transaction_id: null,
+        receivable_id: null,
+      })
+      .eq("id", orderId);
+
+    revalidatePath("/commandes");
+    revalidatePath("/journal");
+    revalidatePath("/dettes-creances");
+    revalidatePath("/stocks");
+    return;
+  }
+
   // 1) Sortie de stock (à la livraison ou au paiement direct)
   if (delivered && !order.stock_movement_done) {
     const stockLines = lines.filter((l) => l.stock_item_id);

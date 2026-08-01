@@ -369,8 +369,10 @@ Effets automatiques déclenchés par le changement de statut d'une commande :
   le mode de règlement), et la créance liée est soldée.
 
 Chaque effet est **idempotent** (posé une seule fois) grâce aux colonnes de
-suivi ci-dessus. L'annulation d'une commande déjà livrée/payée ne fait pas de
-contre-passation automatique (à ajuster manuellement).
+suivi ci-dessus. **Annulée** → contre-passation automatique : réinjection du
+stock (mouvement « entrée »), suppression de la recette et de la créance
+liées, puis réinitialisation des marqueurs (une ré-activation ultérieure
+repostera proprement les effets).
 
 ## Emails transactionnels (Resend)
 
