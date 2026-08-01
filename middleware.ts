@@ -100,6 +100,7 @@ export async function middleware(request: NextRequest) {
     "/saisie",
     "/journal",
     "/dettes-creances",
+    "/commandes",
     "/stocks",
     "/parametres",
     "/immobilisations",

@@ -16,6 +16,7 @@ const NAV_ITEMS: {
   { href: "/ratios", label: "Analyse des Ratios" },
   { href: "/immobilisations", label: "Suivi du Matériel" },
   { href: "/dettes-creances", label: "Dettes & créances" },
+  { href: "/commandes", label: "Commandes" },
   { href: "/stocks", label: "État global", group: "Stocks" },
   { href: "/stocks/saisie", label: "Stock Input", group: "Stocks" },
   { href: "/stocks/par-article", label: "Stock par article", group: "Stocks" },

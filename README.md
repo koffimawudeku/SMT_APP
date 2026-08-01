@@ -297,6 +297,57 @@ dès qu'**un** des dossiers accessibles à l'utilisateur est couvert par un
 abonnement actif : un collaborateur invité n'est donc plus bloqué par
 l'expiration de sa propre organisation.
 
+## Migration : module Commandes clients
+
+Le menu **Commandes** permet de gérer les commandes clients (devis →
+confirmée → livrée → payée / annulée) avec lignes d'articles. Si votre base
+existait déjà, créez les tables dans le SQL Editor :
+
+```sql
+create table orders (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references companies(id) on delete cascade not null,
+  client_name varchar(255) not null,
+  order_date date not null default current_date,
+  delivery_date date,
+  status varchar(20) not null default 'devis'
+    check (status in ('devis', 'confirmee', 'livree', 'payee', 'annulee')),
+  notes text,
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+create table order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid references orders(id) on delete cascade not null,
+  description varchar(255) not null,
+  quantity decimal(10,2) not null default 1 check (quantity > 0),
+  unit_price decimal(15,2) not null default 0 check (unit_price >= 0)
+);
+
+alter table orders enable row level security;
+alter table order_items enable row level security;
+
+create policy "orders_select" on orders
+  for select using (public.has_company_access(company_id));
+create policy "orders_write" on orders
+  for all using (public.has_company_access(company_id));
+
+create policy "order_items_select" on order_items
+  for select using (
+    exists (select 1 from orders o
+      where o.id = order_items.order_id and public.has_company_access(o.company_id))
+  );
+create policy "order_items_write" on order_items
+  for all using (
+    exists (select 1 from orders o
+      where o.id = order_items.order_id and public.has_company_access(o.company_id))
+  );
+```
+
+Sans ces tables, la page `/commandes` affiche un message invitant à jouer la
+migration ; le reste de l'application continue de fonctionner.
+
 ## Emails transactionnels (Resend)
 
 Les invitations de collaborateurs, la création de comptes depuis l'admin et

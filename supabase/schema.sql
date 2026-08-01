@@ -147,6 +147,29 @@ create table company_invitations (
   unique (company_id, email)
 );
 
+-- Commandes clients (module Gestion de commande)
+create table orders (
+  id uuid primary key default gen_random_uuid(),
+  company_id uuid references companies(id) on delete cascade not null,
+  client_name varchar(255) not null,
+  order_date date not null default current_date,
+  delivery_date date,
+  status varchar(20) not null default 'devis'
+    check (status in ('devis', 'confirmee', 'livree', 'payee', 'annulee')),
+  notes text,
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+-- Lignes d'une commande (articles, quantités, prix unitaires)
+create table order_items (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid references orders(id) on delete cascade not null,
+  description varchar(255) not null,
+  quantity decimal(10,2) not null default 1 check (quantity > 0),
+  unit_price decimal(15,2) not null default 0 check (unit_price >= 0)
+);
+
 -- Vue : Compte de résultat simplifié, agrégé par mois
 create view v_compte_resultat as
 select

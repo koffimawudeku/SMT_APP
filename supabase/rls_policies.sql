@@ -128,6 +128,33 @@ create policy "debts_receivables_select" on debts_receivables
 create policy "debts_receivables_write" on debts_receivables
   for all using (public.has_company_access(company_id));
 
+-- Commandes : accès réservé aux membres du dossier.
+alter table orders enable row level security;
+alter table order_items enable row level security;
+
+create policy "orders_select" on orders
+  for select using (public.has_company_access(company_id));
+create policy "orders_write" on orders
+  for all using (public.has_company_access(company_id));
+
+-- Les lignes héritent de l'accès de leur commande parente.
+create policy "order_items_select" on order_items
+  for select using (
+    exists (
+      select 1 from orders o
+      where o.id = order_items.order_id
+      and public.has_company_access(o.company_id)
+    )
+  );
+create policy "order_items_write" on order_items
+  for all using (
+    exists (
+      select 1 from orders o
+      where o.id = order_items.order_id
+      and public.has_company_access(o.company_id)
+    )
+  );
+
 -- Note : ajustez les policies "_write" ci-dessus si vous voulez distinguer
 -- plus finement les droits "viewer" (lecture seule) vs "consultant" (lecture +
 -- commentaires) dès la V1 plutôt qu'en V2.
