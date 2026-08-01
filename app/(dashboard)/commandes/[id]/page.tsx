@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import OrderForm, { type OrderInitial, type StockOption } from "../order-form";
@@ -79,9 +79,16 @@ export default async function CommandeDetailPage({
         <ArrowLeft className="h-4 w-4" />
         Retour aux commandes
       </Link>
-      <h1 className="mb-6 text-xl font-medium">
-        Commande — {order.client_name}
-      </h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-medium">Commande — {order.client_name}</h1>
+        <Link
+          href={`/commandes/${order.id}/facture`}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+        >
+          <FileText className="h-4 w-4" />
+          Facture / Bon
+        </Link>
+      </div>
       <OrderForm initial={initial} stockItems={stockItems} />
     </div>
   );
