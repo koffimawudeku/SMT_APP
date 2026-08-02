@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveCompany } from "@/lib/supabase/get-active-company";
 import { STATUS_LABELS, STATUS_COLORS, type OrderStatus } from "./status";
+import OrderRowActions from "./order-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,7 @@ export default async function CommandesPage() {
                 <th className="px-4 py-2">Livraison</th>
                 <th className="px-4 py-2">Statut</th>
                 <th className="px-4 py-2 text-right">Montant</th>
+                <th className="px-4 py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -123,6 +125,9 @@ export default async function CommandesPage() {
                   </td>
                   <td className="px-4 py-2 text-right font-medium">
                     {fmt(totalsByOrder.get(o.id) ?? 0)} FCFA
+                  </td>
+                  <td className="px-4 py-2">
+                    <OrderRowActions orderId={o.id} clientName={o.client_name} />
                   </td>
                 </tr>
               ))}
