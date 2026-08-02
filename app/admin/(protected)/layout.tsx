@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/admin-guard";
 import LogoutButton from "../../(dashboard)/logout-button";
 import AdminNav from "./admin-nav";
+import ThemeToggle from "../../theme-toggle";
 
 export default async function AdminLayout({
   children,
@@ -17,8 +18,11 @@ export default async function AdminLayout({
           <p className="text-xs text-gray-500">{user.email}</p>
         </div>
         <AdminNav />
-        <div className="w-40">
-          <LogoutButton />
+        <div className="flex items-center gap-2">
+          <ThemeToggle variant="icon" />
+          <div className="w-40">
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main>{children}</main>

@@ -2,25 +2,157 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-50 text-gray-900;
+/* ---------------------------------------------------------------------------
+   Système de thème clair / sombre
+   Les tokens sémantiques (canvas/surface/texte) sont pilotés par variables ;
+   le mode sombre re-mappe en plus les utilitaires gris/blancs les plus
+   utilisés, pour que toutes les pages s'adaptent sans édition individuelle.
+--------------------------------------------------------------------------- */
+:root {
+  --canvas: #e9eafb; /* fond lavande clair */
+  --surface: #ffffff;
+  --surface-2: #f3f4fb;
+  --fg: #111827;
 }
 
-/* Impression / export PDF des états financiers : on masque la barre
-   latérale et les contrôles interactifs, et on neutralise les fonds pour
-   économiser l'encre tout en gardant des tableaux lisibles. */
+.dark {
+  --canvas: #0e1320;
+  --surface: #1a2233;
+  --surface-2: #232d42;
+  --fg: #e6eaf2;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--fg);
+}
+
+/* Re-mapping du mode sombre pour les utilitaires courants ------------------ */
+.dark .bg-white {
+  background-color: #1a2233 !important;
+}
+.dark .bg-gray-50 {
+  background-color: #232d42 !important;
+}
+.dark .bg-gray-100 {
+  background-color: #2b3651 !important;
+}
+.dark .text-gray-900 {
+  color: #e6eaf2 !important;
+}
+.dark .text-gray-800 {
+  color: #dbe1ec !important;
+}
+.dark .text-gray-700 {
+  color: #c4ccda !important;
+}
+.dark .text-gray-600 {
+  color: #a9b3c4 !important;
+}
+.dark .text-gray-500 {
+  color: #8a94a8 !important;
+}
+.dark .text-gray-400 {
+  color: #6c7789 !important;
+}
+.dark .border-gray-100 {
+  border-color: #232d42 !important;
+}
+.dark .border-gray-200 {
+  border-color: #2d3852 !important;
+}
+.dark .border-gray-300 {
+  border-color: #3a465f !important;
+}
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #232d42 !important;
+}
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #2d3852 !important;
+}
+.dark .hover\:bg-gray-50:hover {
+  background-color: #232d42 !important;
+}
+.dark .hover\:bg-gray-100:hover {
+  background-color: #2b3651 !important;
+}
+
+/* Badges colorés : versions lisibles sur fond sombre ---------------------- */
+.dark .bg-green-50,
+.dark .bg-green-100 {
+  background-color: rgba(23, 178, 106, 0.16) !important;
+}
+.dark .text-green-700,
+.dark .text-green-800 {
+  color: #4ade80 !important;
+}
+.dark .bg-blue-50,
+.dark .bg-blue-100 {
+  background-color: rgba(46, 144, 250, 0.16) !important;
+}
+.dark .text-blue-700,
+.dark .text-blue-800 {
+  color: #6db4ff !important;
+}
+.dark .bg-orange-50,
+.dark .bg-orange-100 {
+  background-color: rgba(245, 165, 36, 0.16) !important;
+}
+.dark .text-orange-600,
+.dark .text-orange-700 {
+  color: #fbbf24 !important;
+}
+.dark .bg-red-50,
+.dark .bg-red-100 {
+  background-color: rgba(229, 72, 77, 0.16) !important;
+}
+.dark .text-red-600,
+.dark .text-red-700 {
+  color: #f87171 !important;
+}
+.dark .border-red-300 {
+  border-color: rgba(229, 72, 77, 0.5) !important;
+}
+.dark .bg-purple-100 {
+  background-color: rgba(124, 92, 252, 0.18) !important;
+}
+.dark .text-purple-700 {
+  color: #b39dff !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Impression / export PDF : on masque la barre latérale et les contrôles,
+   et on force un rendu clair (lisible sur papier même en mode sombre).
+--------------------------------------------------------------------------- */
 @media print {
   aside,
   .print\:hidden {
     display: none !important;
   }
 
+  body,
   main {
     background: #fff !important;
+    color: #000 !important;
   }
 
-  body {
-    background: #fff !important;
+  .dark .bg-white {
+    background-color: #fff !important;
+  }
+  .dark .bg-gray-50 {
+    background-color: #f9fafb !important;
+  }
+  .dark .text-gray-900,
+  .dark .text-gray-800,
+  .dark .text-gray-700,
+  .dark .text-gray-600,
+  .dark .text-gray-500 {
+    color: #111827 !important;
+  }
+  .dark .border-gray-100,
+  .dark .border-gray-200,
+  .dark .border-gray-300 {
+    border-color: #e5e7eb !important;
   }
 
   @page {

@@ -44,11 +44,11 @@ export default function NavLinks() {
             )}
             <Link
               href={item.href}
-              className={`block rounded-md px-3 py-2 text-sm ${
+              className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
                 item.group ? "ml-2" : ""
               } ${
                 active
-                  ? "bg-primary/10 font-medium text-primary"
+                  ? "bg-primary font-medium text-white shadow-sm"
                   : "text-gray-700 hover:bg-gray-100"
               }`}
             >

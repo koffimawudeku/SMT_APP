@@ -7,6 +7,7 @@ import LogoutButton from "./logout-button";
 import NavLinks from "./nav-links";
 import OnboardingForm from "./onboarding/onboarding-form";
 import CompanySwitcher from "./company-switcher";
+import ThemeToggle from "../theme-toggle";
 
 export default async function DashboardLayout({
   children,
@@ -58,12 +59,13 @@ export default async function DashboardLayout({
           </Link>
         )}
 
-        <div className="border-t border-gray-200 p-3">
+        <div className="space-y-1 border-t border-gray-200 p-3">
+          <ThemeToggle />
           <LogoutButton />
         </div>
       </aside>
 
-      <main className="flex-1 bg-gray-50">{children}</main>
+      <main className="flex-1 bg-canvas">{children}</main>
     </div>
   );
 }

@@ -29,8 +29,8 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
       <AreaChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="soldeGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#0F6E56" stopOpacity={0.35} />
-            <stop offset="95%" stopColor="#0F6E56" stopOpacity={0.02} />
+            <stop offset="5%" stopColor="#2E90FA" stopOpacity={0.35} />
+            <stop offset="95%" stopColor="#2E90FA" stopOpacity={0.02} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -55,7 +55,7 @@ export default function TresorerieChart({ data }: { data: Point[] }) {
         <Area
           type="monotone"
           dataKey="solde"
-          stroke="#0F6E56"
+          stroke="#2E90FA"
           strokeWidth={2}
           fill="url(#soldeGradient)"
         />

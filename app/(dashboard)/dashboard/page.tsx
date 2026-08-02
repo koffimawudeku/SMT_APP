@@ -123,7 +123,7 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="mt-6 rounded-lg border-t-4 border-primary bg-white p-4">
+      <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card">
         <p className="mb-3 text-sm font-medium text-gray-700">
           Évolution du solde de trésorerie — exercice {exercice.year}
         </p>
@@ -177,7 +177,7 @@ function KpiCard({
   const s = COLOR_STYLES[color];
   return (
     <div
-      className={`rounded-lg border-l-4 bg-white p-4 ${s.border}`}
+      className={`rounded-2xl border border-gray-200 border-l-4 bg-white p-4 shadow-card ${s.border}`}
     >
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm text-gray-500">{label}</p>
