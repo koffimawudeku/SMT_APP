@@ -107,6 +107,7 @@ export async function middleware(request: NextRequest) {
     "/compte-resultat",
     "/bilan",
     "/ratios",
+    "/liasse",
     "/abonnement",
     "/admin",
   ];

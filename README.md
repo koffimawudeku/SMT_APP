@@ -381,6 +381,23 @@ puis reposés à chaque enregistrement selon l'état courant. Supprimer une
 commande efface aussi ses écritures (recette, créance) et restaure le stock
 (mouvements effacés par cascade).
 
+## Liasse fiscale SMT (SYSCOHADA révisé)
+
+Le menu **Liasse fiscale** génère le classeur Excel officiel de la liasse SMT,
+**renseigné automatiquement** à partir des données du dossier, pour l'exercice
+sélectionné (comparatif N / N-1). Le modèle officiel est le fichier
+`lib/liasse/template.xlsx` ; il est rempli côté serveur via `exceljs` puis
+téléchargé (`/liasse/download?exercice=YYYY`).
+
+Renseigné automatiquement : Bilan (Actif/Passif), Compte de résultat (avec
+variations et dotations), Détail du chiffre d'affaires, dénomination et date
+de clôture. Les onglets d'identification détaillée (immatriculation, RCCM…) et
+les notes détaillées restent à compléter dans le fichier.
+
+> Le modèle est inclus dans le bundle serverless via `outputFileTracingIncludes`
+> (voir `next.config.mjs`) — sans quoi il serait introuvable à l'exécution sur
+> Vercel. Aucune migration de base de données n'est nécessaire.
+
 ## Emails transactionnels (Resend)
 
 Les invitations de collaborateurs, la création de comptes depuis l'admin et

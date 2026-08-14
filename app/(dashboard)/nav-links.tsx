@@ -14,6 +14,7 @@ const NAV_ITEMS: {
   { href: "/compte-resultat", label: "Compte de Résultat" },
   { href: "/bilan", label: "Bilan" },
   { href: "/ratios", label: "Analyse des Ratios" },
+  { href: "/liasse", label: "Liasse fiscale" },
   { href: "/immobilisations", label: "Suivi du Matériel" },
   { href: "/dettes-creances", label: "Dettes & créances" },
   { href: "/commandes", label: "Commandes" },
