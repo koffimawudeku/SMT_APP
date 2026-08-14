@@ -72,12 +72,16 @@ export default async function LiassePage({
             <li>Note 2 — État des stocks (valeurs finale et initiale)</li>
             <li>Note 3 — État des créances et des dettes</li>
             <li>Note 4 — Journal de trésorerie Caisse et Banque (récap mensuel)</li>
-            <li>Dénomination et date de clôture de l&apos;exercice</li>
+            <li>
+              Fiches d&apos;identification (dénomination, sigle, immatriculation,
+              RCCM, adresse, téléphone, activité…) depuis le{" "}
+              <span className="font-medium">Profil de l&apos;entreprise</span>
+            </li>
           </ul>
           <p className="pt-2 text-xs text-gray-400">
-            À compléter dans le fichier : l&apos;identification détaillée
-            (immatriculation, RCCM, adresse…). La Note 4 est renseignée en
-            récapitulatif mensuel (une ligne par mois, en continu).
+            Renseignez le Profil de l&apos;entreprise pour que les fiches
+            d&apos;identification se remplissent. La Note 4 est en récapitulatif
+            mensuel (une ligne par mois, en continu).
           </p>
         </div>
       </div>

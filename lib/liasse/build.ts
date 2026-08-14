@@ -448,7 +448,8 @@ export async function buildLiasseBuffer(
   const denomination = profile?.legal_name || active.companyName || "";
   const closLe = `31/12/${N.year}`;
 
-  for (const sheetName of ["BILAN", cr, "CA", "FICHE IDENTIFICATION 1 ", "FICHE IDENTIFICATION 2 ", "NOTE1", "NOTE2", "NOTE3", "DETAIL DES CHARGES"]) {
+  // Best-effort (par libellé) sur les états financiers et les notes.
+  for (const sheetName of ["BILAN", cr, "CA", "NOTE1", "NOTE2", "NOTE3", "DETAIL DES CHARGES"]) {
     const ws = wb.getWorksheet(sheetName);
     if (!ws) continue;
     if (denomination) setAfterLabel(ws, "dénomination", denomination);
@@ -458,15 +459,63 @@ export async function buildLiasseBuffer(
     setAfterLabel(ws, "exercice clos le", closLe);
   }
 
-  // Champs additionnels sur la fiche d'identification détaillée.
-  const idSheet = wb.getWorksheet("FICHE IDENTIFICATION 1 ");
-  if (idSheet && profile) {
-    if (profile.rccm) setAfterLabel(idSheet, "registre du commerce", profile.rccm);
-    if (profile.activity_code) setAfterLabel(idSheet, "code activité", profile.activity_code);
-    if (profile.phone) setAfterLabel(idSheet, "téléphone", profile.phone);
-    if (profile.po_box) setAfterLabel(idSheet, "boîte postale", profile.po_box);
-    if (profile.city) setAfterLabel(idSheet, "ville", profile.city);
-    if (profile.operator_name) setAfterLabel(idSheet, "désignation de l'entité", profile.operator_name);
+  // Mappage EXACT des fiches d'identification (FICHE ID 2 recopie l'adresse,
+  // l'immatriculation et la durée depuis FICHE ID 1 via ses formules).
+  const adresseLine = [
+    profile?.address,
+    profile?.po_box ? `BP ${profile.po_box}` : null,
+    profile?.city,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const id1 = wb.getWorksheet("FICHE IDENTIFICATION 1 ");
+  if (id1) {
+    const put = (cell: string, v?: string | number | null) => {
+      if (v !== undefined && v !== null && v !== "") id1.getCell(cell).value = v;
+    };
+    // En-tête
+    put("A3", denomination);
+    put("M3", profile?.acronym);
+    put("D4", adresseLine);
+    put("F5", profile?.tax_id);
+    put("K5", closLe);
+    put("Q5", 12);
+    // ZA : exercice comptable (du / au)
+    put("J7", `01/01/${N.year}`);
+    put("P7", `31/12/${N.year}`);
+    // ZC : exercice précédent clos le
+    put("J11", `31/12/${N.year - 1}`);
+    // ZD : n° registre du commerce (RCCM)
+    put("D13", profile?.rccm);
+    // ZE : code activité principale
+    put("O15", profile?.activity_code);
+    // ZF : désignation de l'entité + sigle
+    put("B17", denomination);
+    put("P17", profile?.acronym);
+    // ZG : téléphone / boîte postale / ville
+    put("C20", profile?.phone);
+    put("N20", profile?.po_box);
+    put("P20", profile?.city);
+    // ZH : adresse géographique complète
+    put("B23", profile?.address);
+    // ZI : désignation précise de l'activité
+    put("B29", profile?.activity_label);
+    // Personne à contacter / signataire
+    put("B32", profile?.operator_name);
+    put("B48", profile?.operator_name);
+    put("B51", "L'exploitant");
+    put("B54", closLe);
+  }
+
+  const id2 = wb.getWorksheet("FICHE IDENTIFICATION 2 ");
+  if (id2) {
+    const put = (cell: string, v?: string | number | null) => {
+      if (v !== undefined && v !== null && v !== "") id2.getCell(cell).value = v;
+    };
+    put("A3", denomination);
+    put("AB3", profile?.acronym);
+    put("W5", closLe);
   }
 
   const arrayBuffer = await wb.xlsx.writeBuffer();
