@@ -381,6 +381,31 @@ puis reposés à chaque enregistrement selon l'état courant. Supprimer une
 commande efface aussi ses écritures (recette, créance) et restaure le stock
 (mouvements effacés par cascade).
 
+## Migration : profil de l'entreprise
+
+Le menu **Profil de l'entreprise** (réservé au propriétaire) stocke
+l'identification détaillée utilisée par la liasse fiscale. Si votre base
+existait déjà, ajoutez les colonnes :
+
+```sql
+alter table companies add column if not exists legal_name varchar(255);
+alter table companies add column if not exists acronym varchar(100);
+alter table companies add column if not exists operator_name varchar(255);
+alter table companies add column if not exists tax_id varchar(100);
+alter table companies add column if not exists rccm varchar(100);
+alter table companies add column if not exists activity_code varchar(50);
+alter table companies add column if not exists activity_label varchar(255);
+alter table companies add column if not exists address text;
+alter table companies add column if not exists city varchar(100);
+alter table companies add column if not exists po_box varchar(100);
+alter table companies add column if not exists phone varchar(50);
+alter table companies add column if not exists contact_email varchar(255);
+alter table companies add column if not exists headcount integer;
+```
+
+Ces champs alimentent automatiquement les onglets d'identification de la
+liasse (dénomination, sigle, immatriculation, adresse, téléphone, activité…).
+
 ## Liasse fiscale SMT (SYSCOHADA révisé)
 
 Le menu **Liasse fiscale** génère le classeur Excel officiel de la liasse SMT,

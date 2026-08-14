@@ -437,12 +437,36 @@ export async function buildLiasseBuffer(
   fillNote4(wb, txns, exN);
 
   // --- Identification (best-effort) sur les onglets principaux ---
+  const { data: profile } = await supabase
+    .from("companies")
+    .select(
+      "legal_name, acronym, operator_name, tax_id, rccm, activity_code, activity_label, address, city, po_box, phone, contact_email, headcount"
+    )
+    .eq("id", active.companyId)
+    .maybeSingle();
+
+  const denomination = profile?.legal_name || active.companyName || "";
   const closLe = `31/12/${N.year}`;
-  for (const sheetName of ["BILAN", cr, "CA", "FICHE IDENTIFICATION 1 "]) {
+
+  for (const sheetName of ["BILAN", cr, "CA", "FICHE IDENTIFICATION 1 ", "FICHE IDENTIFICATION 2 ", "NOTE1", "NOTE2", "NOTE3", "DETAIL DES CHARGES"]) {
     const ws = wb.getWorksheet(sheetName);
     if (!ws) continue;
-    if (active.companyName) setAfterLabel(ws, "dénomination", active.companyName);
+    if (denomination) setAfterLabel(ws, "dénomination", denomination);
+    if (profile?.acronym) setAfterLabel(ws, "sigle", profile.acronym);
+    if (profile?.tax_id) setAfterLabel(ws, "immatriculation fiscale", profile.tax_id);
+    if (profile?.address) setAfterLabel(ws, "adresse", profile.address);
     setAfterLabel(ws, "exercice clos le", closLe);
+  }
+
+  // Champs additionnels sur la fiche d'identification détaillée.
+  const idSheet = wb.getWorksheet("FICHE IDENTIFICATION 1 ");
+  if (idSheet && profile) {
+    if (profile.rccm) setAfterLabel(idSheet, "registre du commerce", profile.rccm);
+    if (profile.activity_code) setAfterLabel(idSheet, "code activité", profile.activity_code);
+    if (profile.phone) setAfterLabel(idSheet, "téléphone", profile.phone);
+    if (profile.po_box) setAfterLabel(idSheet, "boîte postale", profile.po_box);
+    if (profile.city) setAfterLabel(idSheet, "ville", profile.city);
+    if (profile.operator_name) setAfterLabel(idSheet, "désignation de l'entité", profile.operator_name);
   }
 
   const arrayBuffer = await wb.xlsx.writeBuffer();

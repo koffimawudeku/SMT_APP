@@ -33,6 +33,20 @@ create table companies (
   fiscal_year_start date default date_trunc('year', now()),
   initial_capital decimal(15,2) default 0,
   logo_url text,
+  -- Profil de l'entreprise (identification détaillée pour la liasse fiscale)
+  legal_name varchar(255),
+  acronym varchar(100),
+  operator_name varchar(255),
+  tax_id varchar(100),
+  rccm varchar(100),
+  activity_code varchar(50),
+  activity_label varchar(255),
+  address text,
+  city varchar(100),
+  po_box varchar(100),
+  phone varchar(50),
+  contact_email varchar(255),
+  headcount integer,
   created_at timestamptz default now()
 );
 

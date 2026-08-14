@@ -102,6 +102,7 @@ export async function middleware(request: NextRequest) {
     "/dettes-creances",
     "/commandes",
     "/stocks",
+    "/profil",
     "/parametres",
     "/immobilisations",
     "/compte-resultat",

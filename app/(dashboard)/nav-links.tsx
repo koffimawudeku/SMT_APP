@@ -21,6 +21,7 @@ const NAV_ITEMS: {
   { href: "/stocks", label: "État global", group: "Stocks" },
   { href: "/stocks/saisie", label: "Stock Input", group: "Stocks" },
   { href: "/stocks/par-article", label: "Stock par article", group: "Stocks" },
+  { href: "/profil", label: "Profil de l'entreprise" },
   { href: "/parametres", label: "Paramètres" },
   { href: "/abonnement", label: "Abonnement" },
 ];
