@@ -390,9 +390,11 @@ sélectionné (comparatif N / N-1). Le modèle officiel est le fichier
 téléchargé (`/liasse/download?exercice=YYYY`).
 
 Renseigné automatiquement : Bilan (Actif/Passif), Compte de résultat (avec
-variations et dotations), Détail du chiffre d'affaires, dénomination et date
-de clôture. Les onglets d'identification détaillée (immatriculation, RCCM…) et
-les notes détaillées restent à compléter dans le fichier.
+variations et dotations), Détail du chiffre d'affaires, Note 1 (matériel),
+Note 2 (stocks, valeurs finale/initiale), Note 3 (créances et dettes),
+dénomination et date de clôture. Restent à compléter : l'identification
+détaillée (immatriculation, RCCM…) et la Note 4 (journal de trésorerie
+mensuel, conçue pour un remplissage mois par mois).
 
 > Le modèle est inclus dans le bundle serverless via `outputFileTracingIncludes`
 > (voir `next.config.mjs`) — sans quoi il serait introuvable à l'exécution sur

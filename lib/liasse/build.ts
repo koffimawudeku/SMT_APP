@@ -120,6 +120,120 @@ async function computeYear(
   };
 }
 
+function fmtDate(iso?: string | null): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return d && m && y ? `${d}/${m}/${y}` : "";
+}
+
+/**
+ * Renseigne les notes détaillées de la liasse :
+ *  - Note 1 : suivi du matériel (immobilisations)
+ *  - Note 2 : état des stocks (+ valeurs finale et initiale)
+ *  - Note 3 : état des créances et des dettes non échues
+ */
+async function fillNotes(
+  wb: ExcelJS.Workbook,
+  supabase: SupabaseClient,
+  companyId: string,
+  exercice: Exercice
+) {
+  const cutoffISO = exercice.isCurrent
+    ? new Date().toISOString().slice(0, 10)
+    : exercice.end;
+  const yearStartISO = exercice.start;
+
+  const [{ data: assets }, { data: stockItems }, { data: movements }, { data: debts }] =
+    await Promise.all([
+      supabase
+        .from("assets")
+        .select("name, acquisition_date, acquisition_value, exit_date, exit_price")
+        .eq("company_id", companyId)
+        .order("acquisition_date", { ascending: true }),
+      supabase
+        .from("stock_items")
+        .select("id, reference, name, unit_cost")
+        .eq("company_id", companyId)
+        .order("name"),
+      supabase
+        .from("stock_movements")
+        .select("stock_item_id, type, quantity, movement_date")
+        .eq("company_id", companyId),
+      supabase
+        .from("debts_receivables")
+        .select("type, third_party_name, amount, amount_paid, due_date")
+        .eq("company_id", companyId),
+    ]);
+
+  // --- NOTE 1 : matériel (lignes 11 à 40) ---
+  const note1 = wb.getWorksheet("NOTE1");
+  if (note1) {
+    (assets ?? []).slice(0, 30).forEach((a, i) => {
+      const r = 11 + i;
+      note1.getCell(`A${r}`).value = fmtDate(a.acquisition_date);
+      note1.getCell(`B${r}`).value = a.name;
+      note1.getCell(`G${r}`).value = Math.round(a.acquisition_value ?? 0);
+      if (a.exit_date) note1.getCell(`H${r}`).value = fmtDate(a.exit_date);
+      if (a.exit_price != null)
+        note1.getCell(`I${r}`).value = Math.round(a.exit_price);
+    });
+  }
+
+  // --- NOTE 2 : stocks (lignes 11 à 72) + valeurs finale / initiale ---
+  const qtyAt = (itemId: string, dateISO: string) =>
+    (movements ?? [])
+      .filter((m) => m.stock_item_id === itemId && m.movement_date <= dateISO)
+      .reduce(
+        (s, m) => s + (m.type === "sortie" ? -m.quantity : m.quantity),
+        0
+      );
+
+  const note2 = wb.getWorksheet("NOTE2");
+  if (note2) {
+    let totalFinal = 0;
+    let totalInitial = 0;
+    (stockItems ?? []).slice(0, 62).forEach((it, i) => {
+      const r = 11 + i;
+      const qtyFinal = qtyAt(it.id, cutoffISO);
+      const cost = it.unit_cost ?? 0;
+      const montant = qtyFinal * cost;
+      totalFinal += montant;
+      totalInitial += qtyAt(it.id, yearStartISO) * cost;
+      note2.getCell(`A${r}`).value = it.reference ?? "";
+      note2.getCell(`B${r}`).value = it.name;
+      note2.getCell(`G${r}`).value = Math.round(qtyFinal);
+      note2.getCell(`H${r}`).value = Math.round(cost);
+      note2.getCell(`I${r}`).value = Math.round(montant);
+    });
+    note2.getCell("I73").value = Math.round(totalFinal);
+    note2.getCell("I74").value = Math.round(totalInitial);
+  }
+
+  // --- NOTE 3 : état des créances (11-24) et des dettes (31-44) ---
+  const note3 = wb.getWorksheet("NOTE3");
+  if (note3) {
+    const creances = (debts ?? []).filter(
+      (d) => d.type === "creance" && (d.amount ?? 0) - (d.amount_paid ?? 0) > 0
+    );
+    const dettes = (debts ?? []).filter(
+      (d) => d.type === "dette" && (d.amount ?? 0) - (d.amount_paid ?? 0) > 0
+    );
+
+    creances.slice(0, 14).forEach((d, i) => {
+      const r = 11 + i;
+      note3.getCell(`A${r}`).value = fmtDate(d.due_date);
+      note3.getCell(`B${r}`).value = d.third_party_name;
+      note3.getCell(`G${r}`).value = Math.round((d.amount ?? 0) - (d.amount_paid ?? 0));
+    });
+    dettes.slice(0, 14).forEach((d, i) => {
+      const r = 31 + i;
+      note3.getCell(`A${r}`).value = fmtDate(d.due_date);
+      note3.getCell(`B${r}`).value = d.third_party_name;
+      note3.getCell(`G${r}`).value = Math.round((d.amount ?? 0) - (d.amount_paid ?? 0));
+    });
+  }
+}
+
 /** Écrit une valeur dans la cellule située `offset` colonnes après un libellé. */
 function setAfterLabel(
   ws: ExcelJS.Worksheet,
@@ -224,6 +338,9 @@ export async function buildLiasseBuffer(
   set("CA", "G23", N.autresRecettes); set("CA", "E23", N1.autresRecettes);
   set("CA", "G24", N.ventes + N.autresRecettes);
   set("CA", "E24", N1.ventes + N1.autresRecettes);
+
+  // --- Notes détaillées (1, 2, 3) ---
+  await fillNotes(wb, supabase, active.companyId, exN);
 
   // --- Identification (best-effort) sur les onglets principaux ---
   const closLe = `31/12/${N.year}`;

@@ -68,12 +68,15 @@ export default async function LiassePage({
             <li>Bilan (Actif / Passif), exercices N et N-1</li>
             <li>Compte de résultat, avec variations et dotations</li>
             <li>Détail du chiffre d&apos;affaires</li>
+            <li>Note 1 — Suivi du matériel (immobilisations)</li>
+            <li>Note 2 — État des stocks (valeurs finale et initiale)</li>
+            <li>Note 3 — État des créances et des dettes</li>
             <li>Dénomination et date de clôture de l&apos;exercice</li>
           </ul>
           <p className="pt-2 text-xs text-gray-400">
-            Les onglets d&apos;identification détaillée (immatriculation, RCCM,
-            adresse…) et les notes détaillées restent à compléter dans le
-            fichier téléchargé : la plateforme ne stocke pas ces informations.
+            À compléter dans le fichier : l&apos;identification détaillée
+            (immatriculation, RCCM, adresse…) et la Note 4 (journal de
+            trésorerie mensuel), conçue pour être remplie mois par mois.
           </p>
         </div>
       </div>
