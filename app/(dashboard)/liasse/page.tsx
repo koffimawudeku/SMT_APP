@@ -71,12 +71,13 @@ export default async function LiassePage({
             <li>Note 1 — Suivi du matériel (immobilisations)</li>
             <li>Note 2 — État des stocks (valeurs finale et initiale)</li>
             <li>Note 3 — État des créances et des dettes</li>
+            <li>Note 4 — Journal de trésorerie Caisse et Banque (récap mensuel)</li>
             <li>Dénomination et date de clôture de l&apos;exercice</li>
           </ul>
           <p className="pt-2 text-xs text-gray-400">
             À compléter dans le fichier : l&apos;identification détaillée
-            (immatriculation, RCCM, adresse…) et la Note 4 (journal de
-            trésorerie mensuel), conçue pour être remplie mois par mois.
+            (immatriculation, RCCM, adresse…). La Note 4 est renseignée en
+            récapitulatif mensuel (une ligne par mois, en continu).
           </p>
         </div>
       </div>

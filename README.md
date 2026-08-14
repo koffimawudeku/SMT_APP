@@ -392,9 +392,10 @@ téléchargé (`/liasse/download?exercice=YYYY`).
 Renseigné automatiquement : Bilan (Actif/Passif), Compte de résultat (avec
 variations et dotations), Détail du chiffre d'affaires, Note 1 (matériel),
 Note 2 (stocks, valeurs finale/initiale), Note 3 (créances et dettes),
-dénomination et date de clôture. Restent à compléter : l'identification
-détaillée (immatriculation, RCCM…) et la Note 4 (journal de trésorerie
-mensuel, conçue pour un remplissage mois par mois).
+Note 4 (journal de trésorerie Caisse et Banque en récapitulatif mensuel :
+report à nouveau, une ligne par mois avec ventilations, totaux),
+dénomination et date de clôture. Reste à compléter : l'identification
+détaillée (immatriculation, RCCM, adresse…).
 
 > Le modèle est inclus dans le bundle serverless via `outputFileTracingIncludes`
 > (voir `next.config.mjs`) — sans quoi il serait introuvable à l'exécution sur

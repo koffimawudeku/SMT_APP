@@ -120,6 +120,97 @@ async function computeYear(
   };
 }
 
+const MONTHS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+
+// Colonne de ventilation (G→O) selon la catégorie de l'opération.
+const VENTILATION_COL: Record<string, string> = {
+  Ventes: "G",
+  "Autres Recettes": "H",
+  "Matériel/Mobilier": "I",
+  "Achat Marchandises": "J",
+  "Achat Matières/Fourn.": "K",
+  Loyer: "L",
+  Salaires: "M",
+  "Impôts/Taxes": "N",
+  "Autres Dépenses": "O",
+  "Eau/Électricité": "O",
+};
+
+/**
+ * Note 4 — Journal de trésorerie SMT, rempli en récapitulatif mensuel
+ * (une ligne par mois, en continu sur une seule page), pour la Caisse
+ * (onglet NOT4) et la Banque + Mobile Money (onglet NOT4 (2)). Le report à
+ * nouveau (solde d'ouverture) figure en ligne 12, les 12 mois en 13-24, et
+ * les totaux (formules SUM du modèle) se recalculent.
+ */
+function fillNote4(wb: ExcelJS.Workbook, txns: Txn[], exercice: Exercice) {
+  const year = exercice.year;
+
+  const openingFor = (isCaisse: boolean) =>
+    txns
+      .filter(
+        (t) =>
+          yearOf(t.transaction_date) < year &&
+          (isCaisse
+            ? t.payment_method === "caisse"
+            : t.payment_method !== "caisse")
+      )
+      .reduce((s, t) => s + (t.type === "recette" ? t.amount : -t.amount), 0);
+
+  const fillSheet = (sheetName: string, isCaisse: boolean) => {
+    const ws = wb.getWorksheet(sheetName);
+    if (!ws) return;
+
+    const rows = txns.filter(
+      (t) =>
+        yearOf(t.transaction_date) === year &&
+        (isCaisse
+          ? t.payment_method === "caisse"
+          : t.payment_method !== "caisse")
+    );
+
+    let solde = openingFor(isCaisse);
+    ws.getCell("F12").value = Math.round(solde); // report à nouveau
+
+    for (let m = 0; m < 12; m++) {
+      const r = 13 + m;
+      const mm = String(m + 1).padStart(2, "0");
+      const monthTxns = rows.filter(
+        (t) => t.transaction_date.slice(5, 7) === mm
+      );
+      const recettes = monthTxns
+        .filter((t) => t.type === "recette")
+        .reduce((s, t) => s + t.amount, 0);
+      const depenses = monthTxns
+        .filter((t) => t.type === "depense")
+        .reduce((s, t) => s + t.amount, 0);
+      solde += recettes - depenses;
+
+      ws.getCell(`A${r}`).value = `${mm}/${year}`;
+      ws.getCell(`B${r}`).value = MONTHS[m];
+      if (recettes > 0) ws.getCell(`D${r}`).value = Math.round(recettes);
+      if (depenses > 0) ws.getCell(`E${r}`).value = Math.round(depenses);
+      ws.getCell(`F${r}`).value = Math.round(solde);
+
+      // Ventilations du mois par catégorie.
+      const byCol: Record<string, number> = {};
+      for (const t of monthTxns) {
+        const col = VENTILATION_COL[t.category_name ?? ""];
+        if (col) byCol[col] = (byCol[col] ?? 0) + t.amount;
+      }
+      for (const [col, val] of Object.entries(byCol)) {
+        if (val > 0) ws.getCell(`${col}${r}`).value = Math.round(val);
+      }
+    }
+  };
+
+  fillSheet("NOT4", true); // Caisse
+  fillSheet("NOT4 (2)", false); // Banque + Mobile Money
+}
+
 function fmtDate(iso?: string | null): string {
   if (!iso) return "";
   const [y, m, d] = iso.slice(0, 10).split("-");
@@ -341,6 +432,9 @@ export async function buildLiasseBuffer(
 
   // --- Notes détaillées (1, 2, 3) ---
   await fillNotes(wb, supabase, active.companyId, exN);
+
+  // --- Note 4 : journal de trésorerie Caisse / Banque (récap mensuel) ---
+  fillNote4(wb, txns, exN);
 
   // --- Identification (best-effort) sur les onglets principaux ---
   const closLe = `31/12/${N.year}`;
