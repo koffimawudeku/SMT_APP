@@ -565,6 +565,16 @@ export async function buildLiasseBuffer(
     put("A3", denomination);
     put("AB3", profile?.acronym);
     put("W5", closLe);
+
+    // Tableau « Activité de l'entité » — 1re ligne (row 28). Le CA HT va en
+    // colonne Y (le total X53 fait =Y28+Y31+…) ; le % activité en AH.
+    const caTotalN = Math.round(N.ventes + N.autresRecettes);
+    put("B28", profile?.activity_label || denomination);
+    put("P28", profile?.activity_code);
+    if (caTotalN) {
+      id2.getCell("Y28").value = caTotalN;
+      id2.getCell("AH28").value = 100; // activité unique = 100 % du CA
+    }
   }
 
   // FICHE DEPOT SMT REF : page de garde (Office Togolais des Recettes).
