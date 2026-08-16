@@ -462,6 +462,23 @@ export async function buildLiasseBuffer(
   set("CA", "G24", N.ventes + N.autresRecettes);
   set("CA", "E24", N1.ventes + N1.autresRecettes);
 
+  // --- DETAIL DES CHARGES : état complémentaire (col G = Exercice N) ---
+  const dc = wb.getWorksheet("DETAIL DES CHARGES");
+  if (dc) {
+    const achatsMarch = Math.round(sumCat(txns, exN.year, ["Achat Marchandises"]));
+    const achatsMat = Math.round(sumCat(txns, exN.year, ["Achat Matières/Fourn."]));
+    const setG = (cell: string, v: number) => {
+      if (v) dc.getCell(cell).value = v;
+    };
+    setG("G22", achatsMarch); // 601100 Achats de marchandises
+    setG("G24", achatsMarch); // Sous-total achats de marchandises
+    setG("G27", achatsMat); // 602100 Achats de matières premières
+    setG("G29", achatsMat); // Sous-total achats de matières
+    setG("G33", Math.round(N.loyers)); // 622200 Location de bâtiments
+    setG("G37", Math.round(N.loyers)); // Sous-total services extérieurs
+    setG("G43", Math.round(N.impots)); // 648000 Autres impôts → alimente SUM G44
+  }
+
   // --- Notes détaillées (1, 2, 3) ---
   await fillNotes(wb, supabase, active.companyId, exN);
 
