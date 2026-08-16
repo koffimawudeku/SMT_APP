@@ -386,17 +386,53 @@ export async function buildLiasseBuffer(
     if (ws) ws.getCell(cell).value = Math.round(value);
   };
 
-  // --- BILAN (Actif: C=N, D=N-1 ; Passif: H=N, I=N-1) ---
-  set("BILAN", "C13", N.immobilisations); set("BILAN", "D13", N1.immobilisations);
-  set("BILAN", "C14", N.stocks); set("BILAN", "D14", N1.stocks);
-  set("BILAN", "C15", N.creances); set("BILAN", "D15", N1.creances);
-  set("BILAN", "C16", N.caisse); set("BILAN", "D16", N1.caisse);
-  set("BILAN", "C17", N.banque); set("BILAN", "D17", N1.banque);
-  set("BILAN", "C18", N.totalActif); set("BILAN", "D18", N1.totalActif);
-  set("BILAN", "H13", N.compteExploitant); set("BILAN", "I13", N1.compteExploitant);
-  set("BILAN", "H14", N.resultat); set("BILAN", "I14", N1.resultat);
-  set("BILAN", "H16", N.dettes); set("BILAN", "I16", N1.dettes);
-  set("BILAN", "H18", N.totalPassif); set("BILAN", "I18", N1.totalPassif);
+  // Résultat SMT (accrual) = solde de trésorerie + variations - dotations.
+  // Pour N-1, les variations (N-1 vs N-2) ne sont pas disponibles.
+  const varStocks = N.stocks - N1.stocks;
+  const varCreances = N.creances - N1.creances;
+  const varDettes = N.dettes - N1.dettes;
+  const resultatN = N.solde + varStocks + varCreances + varDettes - N.dotations;
+  const resultatN1 = N1.solde - N1.dotations;
+
+  /**
+   * Colonne de bilan équilibrée : les lignes d'actif sont arrondies puis
+   * sommées, et le « Compte de l'exploitant » sert de variable d'ajustement
+   * (capitaux propres résiduels = Actif − Résultat − Dettes). Le bilan
+   * s'équilibre ainsi exactement, y compris après arrondis.
+   */
+  const bilanColumn = (data: YearData, resultat: number) => {
+    const immob = Math.round(data.immobilisations);
+    const stocks = Math.round(data.stocks);
+    const creances = Math.round(data.creances);
+    const caisse = Math.round(data.caisse);
+    const banque = Math.round(data.banque);
+    const totalActif = immob + stocks + creances + caisse + banque;
+    const res = Math.round(resultat);
+    const dettes = Math.round(data.dettes);
+    const exploitant = totalActif - res - dettes; // emprunts = 0
+    return { immob, stocks, creances, caisse, banque, totalActif, res, dettes, exploitant };
+  };
+
+  const bN = bilanColumn(N, resultatN);
+  const bN1 = bilanColumn(N1, resultatN1);
+
+  const setInt = (sheet: string, cell: string, value: number) => {
+    const ws = wb.getWorksheet(sheet);
+    if (ws) ws.getCell(cell).value = value;
+  };
+
+  // --- BILAN (Actif: C=N, D=N-1 ; Passif: H=N, I=N-1) — équilibré ---
+  setInt("BILAN", "C13", bN.immob); setInt("BILAN", "D13", bN1.immob);
+  setInt("BILAN", "C14", bN.stocks); setInt("BILAN", "D14", bN1.stocks);
+  setInt("BILAN", "C15", bN.creances); setInt("BILAN", "D15", bN1.creances);
+  setInt("BILAN", "C16", bN.caisse); setInt("BILAN", "D16", bN1.caisse);
+  setInt("BILAN", "C17", bN.banque); setInt("BILAN", "D17", bN1.banque);
+  setInt("BILAN", "C18", bN.totalActif); setInt("BILAN", "D18", bN1.totalActif);
+  setInt("BILAN", "H13", bN.exploitant); setInt("BILAN", "I13", bN1.exploitant);
+  setInt("BILAN", "H14", bN.res); setInt("BILAN", "I14", bN1.res);
+  setInt("BILAN", "H15", 0); setInt("BILAN", "I15", 0); // Emprunts
+  setInt("BILAN", "H16", bN.dettes); setInt("BILAN", "I16", bN1.dettes);
+  setInt("BILAN", "H18", bN.totalActif); setInt("BILAN", "I18", bN1.totalActif);
 
   // --- COMPTE DE RESULTAT (H=N, I=N-1) ---
   const cr = "COMPTE DE RESULTAT";
@@ -412,16 +448,12 @@ export async function buildLiasseBuffer(
   set(cr, "H19", N.autresDepenses); set(cr, "I19", N1.autresDepenses);
   set(cr, "H20", N.totalDepenses); set(cr, "I20", N1.totalDepenses);
   set(cr, "H21", N.solde); set(cr, "I21", N1.solde);
-  // Variations (N - N-1) selon les libellés de la liasse
-  const varStocks = N.stocks - N1.stocks;
-  const varCreances = N.creances - N1.creances;
-  const varDettes = N.dettes - N1.dettes;
   set(cr, "H23", varStocks);
   set(cr, "H24", varCreances);
   set(cr, "H25", varDettes);
   set(cr, "H26", N.dotations); set(cr, "I26", N1.dotations);
-  // RESULTAT H = C + D + E + F - G (formule imprimée sur la liasse)
-  set(cr, "H27", N.solde + varStocks + varCreances + varDettes - N.dotations);
+  // RESULTAT H = C + D + E + F - G — cohérent avec le résultat du bilan.
+  set(cr, "H27", resultatN);
 
   // --- CA : Détail du chiffre d'affaires (G=N, E=N-1) ---
   set("CA", "G21", N.ventes); set("CA", "E21", N1.ventes);
