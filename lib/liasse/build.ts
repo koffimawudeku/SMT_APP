@@ -518,6 +518,20 @@ export async function buildLiasseBuffer(
     put("W5", closLe);
   }
 
+  // FICHE DEPOT SMT REF : page de garde (Office Togolais des Recettes).
+  const depot = wb.getWorksheet("FICHE DEPOT SMT REF");
+  if (depot) {
+    const put = (cell: string, v?: string | number | null) => {
+      if (v !== undefined && v !== null && v !== "") depot.getCell(cell).value = v;
+    };
+    put("F17", closLe); // EXERCICE CLOS LE
+    put("F20", profile?.legal_name || denomination); // Dénomination sociale
+    put("F21", profile?.operator_name); // (ou nom et prénoms de l'exploitant)
+    put("F23", profile?.acronym); // Sigle usuel
+    put("F25", adresseLine || profile?.address); // Adresse complète
+    put("F27", profile?.tax_id); // N° d'immatriculation fiscale
+  }
+
   const arrayBuffer = await wb.xlsx.writeBuffer();
   return { buffer: Buffer.from(arrayBuffer), year: N.year };
 }
