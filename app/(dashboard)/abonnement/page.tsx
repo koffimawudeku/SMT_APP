@@ -1,16 +1,20 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 const WHATSAPP = "22890548176";
 const URL_MENSUEL = "https://link.saspay.me/7c8odpeeqm4";
 // Lien SaSPay du plan annuel : à ajouter dans Vercel (NEXT_PUBLIC_SASPAY_ANNUEL_URL)
-const URL_ANNUEL = process.env.NEXT_PUBLIC_SASPAY_ANNUEL_URL || null;
+const URL_ANNUEL: string | null = process.env.NEXT_PUBLIC_SASPAY_ANNUEL_URL || null;
 
-function useAbonnement() {
-  const [etat, setEtat] = useState({ chargement: true, dateFin: null, actif: false });
+type Etat = { chargement: boolean; dateFin: Date | null; actif: boolean };
+
+function useAbonnement(): Etat {
+  const [etat, setEtat] = useState<Etat>({ chargement: true, dateFin: null, actif: false });
 
   useEffect(() => {
+    const supabase = createClient();
     (async () => {
       // La règle de sécurité ne renvoie que les lignes de l'organisation de l'utilisateur
       const { data } = await supabase
@@ -22,19 +26,30 @@ function useAbonnement() {
         .maybeSingle();
 
       const fin = data?.current_period_end ? new Date(data.current_period_end) : null;
-      setEtat({ chargement: false, dateFin: fin, actif: !!fin && fin > new Date() });
+      setEtat({ chargement: false, dateFin: fin, actif: !!fin && fin.getTime() > Date.now() });
     })();
   }, []);
 
   return etat;
 }
 
-function whatsappLink(texte) {
+function whatsappLink(texte: string): string {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texte)}`;
 }
 
-function PlanCard({ titre, prix, unite, badge, url, texteWhatsapp, recommande }) {
-  const bouton = "block rounded-lg bg-blue-500 py-3 text-center font-semibold text-white hover:bg-blue-600";
+type PlanCardProps = {
+  titre: string;
+  prix: string;
+  unite: string;
+  badge?: string;
+  url: string | null;
+  texteWhatsapp: string;
+  recommande?: boolean;
+};
+
+function PlanCard({ titre, prix, unite, badge, url, texteWhatsapp, recommande }: PlanCardProps) {
+  const bouton =
+    "block rounded-lg bg-blue-500 py-3 text-center font-semibold text-white hover:bg-blue-600";
   return (
     <div className={`rounded-2xl bg-white p-6 ${recommande ? "border-2 border-blue-500" : "border"}`}>
       <p className="text-gray-600">
@@ -63,7 +78,9 @@ function PlanCard({ titre, prix, unite, badge, url, texteWhatsapp, recommande })
 export default function AbonnementPage() {
   const { chargement, dateFin, actif } = useAbonnement();
 
-  const joursRestants = dateFin ? Math.ceil((dateFin - new Date()) / (1000 * 60 * 60 * 24)) : null;
+  const joursRestants = dateFin
+    ? Math.ceil((dateFin.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
     <main className="mx-auto max-w-4xl p-6">
@@ -80,8 +97,11 @@ export default function AbonnementPage() {
             <>
               {actif ? "Votre accès est actif jusqu'au " : "Votre accès a expiré le "}
               <strong>{dateFin.toLocaleDateString("fr-FR")}</strong>
-              {actif && joursRestants <= 5 && (
-                <span> ({joursRestants} jour{joursRestants > 1 ? "s" : ""} restant{joursRestants > 1 ? "s" : ""})</span>
+              {actif && joursRestants !== null && joursRestants <= 5 && (
+                <span>
+                  {" "}
+                  ({joursRestants} jour{joursRestants > 1 ? "s" : ""} restant{joursRestants > 1 ? "s" : ""})
+                </span>
               )}
             </>
           ) : (
