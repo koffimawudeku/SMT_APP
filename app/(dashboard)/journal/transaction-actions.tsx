@@ -82,10 +82,10 @@ export default function TransactionActions({
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-sm rounded-lg bg-white p-5">
+          <div className="w-full max-w-sm whitespace-normal rounded-lg bg-white p-5">
             <h2 className="mb-4 text-sm font-medium">Modifier le flux</h2>
 
-            <form action={handleUpdate} className="space-y-3">
+           <form action={handleUpdate} className="flex flex-col gap-3">
               <div className="flex gap-2">
                 <button
                   type="button"
