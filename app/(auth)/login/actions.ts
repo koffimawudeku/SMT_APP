@@ -1,3 +1,18 @@
+"use server";
+
+import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail, emailLayout, emailButton } from "@/lib/email";
+
+const schema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+/**
+ * Envoie un email de réinitialisation de mot de passe via Resend, avec un
+ * lien vers /definir-mot-de-passe. Réponse volontairement générique : on ne
+ * révèle jamais si l'email correspond à un compte (anti-énumération).
+ */
 export async function requestPasswordReset(formData: FormData) {
   const parsed = schema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
@@ -8,21 +23,14 @@ export async function requestPasswordReset(formData: FormData) {
 
   try {
     const admin = createAdminClient();
-    const { data, error: linkError } = await admin.auth.admin.generateLink({
+    const { data } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
     });
 
-    if (linkError) {
-      // Cas normal si l'email n'existe pas : on ne le révèle pas au visiteur.
-      console.error("[reset-password] generateLink:", linkError.message);
-    }
-
     const hashedToken = data?.properties?.hashed_token;
     if (hashedToken) {
-      const appUrl = (
-        process.env.NEXT_PUBLIC_APP_URL || "https://smt-app-seven.vercel.app"
-      ).replace(/\/$/, "");
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
       const link = `${appUrl}/definir-mot-de-passe?token_hash=${hashedToken}&type=recovery`;
       const html = emailLayout(
         "Réinitialisation de mot de passe",
@@ -32,9 +40,8 @@ export async function requestPasswordReset(formData: FormData) {
       );
       await sendEmail({ to: email, subject: "Réinitialisation de votre mot de passe SMT", html });
     }
-  } catch (err) {
-    // Rien n'est montré au visiteur, mais on garde la trace pour le débogage.
-    console.error("[reset-password] échec :", err);
+  } catch {
+    // On n'expose aucune erreur interne au visiteur non authentifié.
   }
 
   return {
