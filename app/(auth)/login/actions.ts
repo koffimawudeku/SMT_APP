@@ -23,14 +23,21 @@ export async function requestPasswordReset(formData: FormData) {
 
   try {
     const admin = createAdminClient();
-    const { data } = await admin.auth.admin.generateLink({
+    const { data, error: linkError } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
     });
 
+    if (linkError) {
+      // Cas normal si l'email n'existe pas : on ne le révèle pas au visiteur.
+      console.error("[reset-password] generateLink:", linkError.message);
+    }
+
     const hashedToken = data?.properties?.hashed_token;
     if (hashedToken) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      const appUrl = (
+        process.env.NEXT_PUBLIC_APP_URL || "https://smt-app-seven.vercel.app"
+      ).replace(/\/$/, "");
       const link = `${appUrl}/definir-mot-de-passe?token_hash=${hashedToken}&type=recovery`;
       const html = emailLayout(
         "Réinitialisation de mot de passe",
@@ -40,8 +47,9 @@ export async function requestPasswordReset(formData: FormData) {
       );
       await sendEmail({ to: email, subject: "Réinitialisation de votre mot de passe SMT", html });
     }
-  } catch {
-    // On n'expose aucune erreur interne au visiteur non authentifié.
+  } catch (err) {
+    // Rien n'est montré au visiteur, mais on garde la trace pour le débogage.
+    console.error("[reset-password] échec :", err);
   }
 
   return {
