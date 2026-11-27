@@ -45,7 +45,16 @@ export async function requestPasswordReset(formData: FormData) {
          <p style="margin:20px 0">${emailButton(link, "Choisir un nouveau mot de passe")}</p>
          <p style="font-size:12px;color:#6b7280">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>`
       );
-      await sendEmail({ to: email, subject: "Réinitialisation de votre mot de passe SMT", html });
+
+      const { error: emailError } = await sendEmail({
+        to: email,
+        subject: "Réinitialisation de votre mot de passe SMT",
+        html,
+      });
+
+      if (emailError) {
+        console.error("[reset-password] sendEmail:", emailError);
+      }
     }
   } catch (err) {
     // Rien n'est montré au visiteur, mais on garde la trace pour le débogage.
